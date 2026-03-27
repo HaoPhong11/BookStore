@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -24,13 +23,12 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.bookstore.data.model.RegisterRequest
+import com.example.bookstore.data.dto.request.RegisterRequest
 import com.example.bookstore.ui.components.AuthTextField
 import com.example.bookstore.ui.components.SocialLoginButton
 import com.example.bookstore.ui.theme.*
@@ -72,7 +70,6 @@ fun RegisterScreenContent(
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     var agreeToTerms by remember { mutableStateOf(false) }
 
-    // Error states
     var fullNameError by remember { mutableStateOf(false) }
     var emailError by remember { mutableStateOf(false) }
     var phoneError by remember { mutableStateOf(false) }
@@ -92,7 +89,7 @@ fun RegisterScreenContent(
             is AuthState.Error -> {
                 val message = (authState as AuthState.Error).message
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                if (message.contains("Email đã tồn tại", ignoreCase = true) || message.contains("409", ignoreCase = true)) {
+                if (message.contains("Email", ignoreCase = true)) {
                     emailError = true
                 }
                 onResetState()
@@ -295,9 +292,7 @@ fun RegisterScreenContent(
 
                 ClickableText(
                     text = annotatedText,
-                    onClick = { offset ->
-                        // Handle links
-                    }
+                    onClick = { offset -> }
                 )
             }
 
@@ -315,7 +310,7 @@ fun RegisterScreenContent(
                     agreeToTermsError = !agreeToTerms
 
                     if (!fullNameError && !emailError && !phoneError && !passwordError && !confirmPasswordError && !agreeToTermsError) {
-                        onRegister(RegisterRequest(fullName, password, email, fullName))
+                        onRegister(RegisterRequest(email, password, email, fullName))
                     } else {
                         val errorMsg = when {
                             fullName.isBlank() || email.isBlank() || phone.isBlank() || password.isBlank() || confirmPassword.isBlank() -> 

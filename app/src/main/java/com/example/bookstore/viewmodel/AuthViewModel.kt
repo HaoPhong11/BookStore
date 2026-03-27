@@ -3,8 +3,9 @@ package com.example.bookstore.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.bookstore.data.api.ApiService
-import com.example.bookstore.data.model.LoginRequest
-import com.example.bookstore.data.model.RegisterRequest
+import com.example.bookstore.data.dto.request.LoginRequest
+import com.example.bookstore.data.dto.request.RegisterRequest
+import com.example.bookstore.data.dto.response.JwtResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,7 @@ sealed class AuthState {
     object Idle : AuthState()
     object Loading : AuthState()
     data class Success(val message: String) : AuthState()
-    data class LoginSuccess(val token: String) : AuthState()
+    data class LoginSuccess(val response: JwtResponse) : AuthState()
     data class Error(val message: String) : AuthState()
 }
 
@@ -35,7 +36,8 @@ class AuthViewModel @Inject constructor(
                 if (response.isSuccessful) {
                     _authState.value = AuthState.Success(response.body() ?: "Đăng ký thành công")
                 } else {
-                    _authState.value = AuthState.Error("Đăng ký thất bại: ${response.message()}")
+                    val errorBody = response.errorBody()?.string() ?: "Đăng ký thất bại"
+                    _authState.value = AuthState.Error(errorBody)
                 }
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("Lỗi kết nối: ${e.message}")
@@ -47,10 +49,9 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val response = apiService.loginUser(request)
+                val response = apiService.login(request)
                 if (response.isSuccessful && response.body() != null) {
-                    val token = response.body()!!.token
-                    _authState.value = AuthState.LoginSuccess(token)
+                    _authState.value = AuthState.LoginSuccess(response.body()!!)
                 } else {
                     _authState.value = AuthState.Error("Đăng nhập thất bại: Sai tài khoản hoặc mật khẩu")
                 }

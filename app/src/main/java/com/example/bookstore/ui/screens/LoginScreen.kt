@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -19,12 +18,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.bookstore.data.model.LoginRequest
+import com.example.bookstore.data.dto.request.LoginRequest
+import com.example.bookstore.data.dto.response.JwtResponse
 import com.example.bookstore.ui.components.AuthTextField
 import com.example.bookstore.ui.components.SocialLoginButton
 import com.example.bookstore.ui.theme.*
@@ -34,7 +33,7 @@ import com.example.bookstore.viewmodel.AuthViewModel
 @Composable
 fun LoginScreen(
     onBackClick: () -> Unit = {},
-    onLoginSuccess: (String) -> Unit = {},
+    onLoginSuccess: (JwtResponse) -> Unit = {},
     onRegisterClick: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
@@ -57,7 +56,7 @@ fun LoginScreen(
 fun LoginScreenContent(
     authState: AuthState,
     onBackClick: () -> Unit = {},
-    onLoginSuccess: (String) -> Unit = {},
+    onLoginSuccess: (JwtResponse) -> Unit = {},
     onLogin: (LoginRequest) -> Unit = {},
     onRegisterClick: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {},
@@ -68,7 +67,6 @@ fun LoginScreenContent(
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
 
-    // Error states
     var emailError by remember { mutableStateOf(false) }
     var passwordError by remember { mutableStateOf(false) }
 
@@ -78,7 +76,7 @@ fun LoginScreenContent(
         when (authState) {
             is AuthState.LoginSuccess -> {
                 Toast.makeText(context, "Đăng nhập thành công", Toast.LENGTH_SHORT).show()
-                onLoginSuccess((authState as AuthState.LoginSuccess).token)
+                onLoginSuccess((authState as AuthState.LoginSuccess).response)
                 onResetState()
             }
             is AuthState.Error -> {
