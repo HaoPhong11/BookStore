@@ -2,7 +2,7 @@ package com.example.bookstore.data.repo
 
 import com.example.bookstore.data.api.GoogleBooksApiService
 import com.example.bookstore.data.model.Book
-import com.example.bookstore.data.model.BookItem
+import com.example.bookstore.data.dto.BookItem
 
 class BookRepository(private val api: GoogleBooksApiService) {
 
@@ -25,13 +25,17 @@ class BookRepository(private val api: GoogleBooksApiService) {
 
 
     private fun BookItem.toDomainModel(): Book {
+        val bookPrice = this.saleInfo?.retailPrice?.amount
+            ?: this.saleInfo?.listPrice?.amount
+            ?: 0.0
         return Book(
             id = this.id,
             title = this.volumeInfo?.title ?: "Chưa rõ tên sách",
             author = this.volumeInfo?.authors?.firstOrNull() ?: "Khuyết danh",
 
             imageUrl = this.volumeInfo?.imageLinks?.thumbnailUrl?.replace("http:", "https:") ?: "",
-            price = 150000.0 // nay se lay gia trog api gg lun, tam thoi de v
+            describe = this.volumeInfo?.description ?: " ",
+            price = bookPrice
 
         )
     }
