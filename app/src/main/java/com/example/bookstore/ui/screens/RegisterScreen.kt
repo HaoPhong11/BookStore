@@ -133,27 +133,24 @@ fun RegisterScreenContent(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // App Title
             Text(
                 text = "BOOKVERSE",
                 color = Color(0xFF1A73E8),
-                fontSize = 24.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold
             )
 
-            // Subtitle
             Text(
                 text = "Tham gia cùng chúng tôi",
                 color = GrayText,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 2.dp)
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 4.dp)
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Họ và tên
             AuthTextField(
                 label = "Họ và tên",
                 value = fullName,
@@ -166,9 +163,8 @@ fun RegisterScreenContent(
                 isError = fullNameError
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Email
             AuthTextField(
                 label = "Email",
                 value = email,
@@ -182,9 +178,8 @@ fun RegisterScreenContent(
                 isError = emailError
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Số điện thoa
             AuthTextField(
                 label = "Số điện thoại",
                 value = phone,
@@ -198,9 +193,8 @@ fun RegisterScreenContent(
                 isError = phoneError
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Mật khẩu
             AuthTextField(
                 label = "Mật khẩu",
                 value = password,
@@ -217,9 +211,8 @@ fun RegisterScreenContent(
                 isError = passwordError
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Xác nhận mật khẩu
             AuthTextField(
                 label = "Xác nhận mật khẩu",
                 value = confirmPassword,
@@ -236,9 +229,8 @@ fun RegisterScreenContent(
                 isError = confirmPasswordError
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Điều khoản dịch vụ và bảo mật
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -260,28 +252,28 @@ fun RegisterScreenContent(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 val annotatedText = buildAnnotatedString {
-                    withStyle(style = SpanStyle(color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)) {
+                    withStyle(style = SpanStyle(color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Medium)) {
                         append("Tôi đồng ý với điều khoản ")
                     }
                     pushStringAnnotation(tag = "terms", annotation = "terms")
                     withStyle(
                         style = SpanStyle(
                             color = Color(0xFF1A73E8),
-                            fontSize = 10.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                     ) {
                         append("Điều khoản dịch vụ")
                     }
                     pop()
-                    withStyle(style = SpanStyle(color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)) {
+                    withStyle(style = SpanStyle(color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Medium)) {
                         append(" và ")
                     }
                     pushStringAnnotation(tag = "privacy", annotation = "privacy")
                     withStyle(
                         style = SpanStyle(
                             color = Color(0xFF1A73E8),
-                            fontSize = 10.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                     ) {
@@ -296,12 +288,10 @@ fun RegisterScreenContent(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Nút đăng ký
             Button(
                 onClick = {
-                    // Reset errors
                     fullNameError = fullName.isBlank()
                     emailError = email.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()
                     phoneError = phone.isBlank() || phone.length < 10
@@ -330,9 +320,9 @@ fun RegisterScreenContent(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(56.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4469B0)),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
                 enabled = authState !is AuthState.Loading
             ) {
                 if (authState is AuthState.Loading) {
@@ -340,16 +330,15 @@ fun RegisterScreenContent(
                 } else {
                     Text(
                         text = "Đăng ký",
-                        fontSize = 16.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Divider
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -357,50 +346,47 @@ fun RegisterScreenContent(
                 HorizontalDivider(modifier = Modifier.weight(1f), thickness = 1.dp, color = Color.LightGray)
                 Text(
                     text = "Hoặc đăng ký bằng",
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    color = Color.Gray,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = GrayText,
+                    fontSize = 12.sp
                 )
                 HorizontalDivider(modifier = Modifier.weight(1f), thickness = 1.dp, color = Color.LightGray)
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Đăng ký bằng tài khoản xã hội
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SocialLoginButton(
                     text = "Facebook",
                     icon = "f",
                     backgroundColor = FacebookBlue,
-                    modifier = Modifier.weight(1f).height(44.dp),
+                    modifier = Modifier.weight(1f).height(48.dp),
                     onClick = {}
                 )
                 SocialLoginButton(
                     text = "Google",
                     icon = "G",
                     backgroundColor = GoogleButtonRed,
-                    modifier = Modifier.weight(1f).height(44.dp),
+                    modifier = Modifier.weight(1f).height(48.dp),
                     onClick = {}
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Footer
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 12.dp)
+                modifier = Modifier.padding(bottom = 24.dp)
             ) {
-                Text(text = "Bạn đã có tài khoản? ", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Bạn đã có tài khoản? ", fontSize = 14.sp)
                 TextButton(onClick = onLoginClick, contentPadding = PaddingValues(0.dp)) {
                     Text(
                         text = "Đăng nhập",
-                        color = Color(0xFF1A73E8),
-                        fontSize = 13.sp,
+                        color = PrimaryBlue,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
