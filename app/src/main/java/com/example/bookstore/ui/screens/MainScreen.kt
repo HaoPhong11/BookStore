@@ -32,7 +32,6 @@ fun MainScreen() {
             startDestination = BottomNavItem.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-
             composable(BottomNavItem.Home.route) {
                 HomeScreen()
             }
@@ -43,7 +42,22 @@ fun MainScreen() {
                 CartScreen()
             }
             composable(BottomNavItem.Account.route) {
-                AccountScreen()
+                AccountScreen(
+                    onLoginClick = { navController.navigate("login") },
+                    onRegisterClick = { navController.navigate("register") }
+                )
+            }
+            composable("login") {
+                LoginScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onRegisterClick = { navController.navigate("register") }
+                )
+            }
+            composable("register") {
+                RegisterScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onLoginClick = { navController.navigate("login") }
+                )
             }
         }
     }
