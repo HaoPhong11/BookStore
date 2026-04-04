@@ -1,7 +1,9 @@
 package com.example.bookstore.di
 
 import android.content.Context
+import com.example.bookstore.data.api.ApiService
 import com.example.bookstore.data.api.GoogleBooksApiService
+import com.example.bookstore.data.api.RetrofitClient
 import com.example.bookstore.data.local.TokenManager
 import com.example.bookstore.data.repo.BookRepository
 import dagger.Module
@@ -40,5 +42,12 @@ object AppModule {
     @Singleton
     fun provideBookRepository(api: GoogleBooksApiService): BookRepository {
         return BookRepository(api)
+    }
+
+    // 4. Phân phát ApiService cho backend Railway
+    @Provides
+    @Singleton
+    fun provideApiService(): ApiService {
+        return RetrofitClient.instance.create(ApiService::class.java)
     }
 }
