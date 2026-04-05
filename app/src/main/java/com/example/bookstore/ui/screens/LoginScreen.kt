@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
@@ -22,7 +21,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.bookstore.data.dto.request.LoginRequest
@@ -53,8 +51,11 @@ fun LoginScreen(
         }
     }
 
+    val authState by viewModel.authState.collectAsState()
+    val context = LocalContext.current
+
     LoginScreenContent(
-        authState             = viewModel.authState.collectAsState().value,
+        authState             = authState,
         onBackClick           = { navController.popBackStack() },
         onLoginSuccess        = {
             // Load profile ngay sau login → pre-fill ProfileScreen & CheckoutScreen
@@ -65,6 +66,8 @@ fun LoginScreen(
         },
         onLogin               = { viewModel.login(it) },
         onRegisterClick       = { navController.navigate("register") },
+        onFacebookLogin       = { viewModel.loginWithSocial("Facebook") },
+        onGoogleLogin         = { viewModel.loginWithSocial("Google") },
         onForgotPasswordClick = { /* TODO: quên mật khẩu */ },
         onResetState          = { viewModel.resetState() }
     )
@@ -79,6 +82,8 @@ fun LoginScreenContent(
     onLoginSuccess:        (JwtResponse) -> Unit   = {},
     onLogin:               (LoginRequest) -> Unit  = {},
     onRegisterClick:       () -> Unit              = {},
+    onFacebookLogin:       () -> Unit              = {},
+    onGoogleLogin:         () -> Unit              = {},
     onForgotPasswordClick: () -> Unit              = {},
     onResetState:          () -> Unit              = {}
 ) {
@@ -117,7 +122,7 @@ fun LoginScreenContent(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PrimaryBlue)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = AppColors.PrimaryBlue)
             )
         },
         containerColor = Color.White
@@ -132,10 +137,10 @@ fun LoginScreenContent(
         ) {
             Spacer(Modifier.height(32.dp))
 
-            Text("BOOKVERSE", color = PrimaryBlue, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
+            Text("BOOKVERSE", color = AppColors.PrimaryBlue, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
             Text(
                 "Khám phá thế giới qua từng trang sách",
-                color = GrayText, fontSize = 14.sp,
+                color = AppColors.GrayText, fontSize = 14.sp,
                 modifier = Modifier.padding(top = 8.dp)
             )
 
@@ -178,7 +183,7 @@ fun LoginScreenContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
                         checked = rememberMe, onCheckedChange = { rememberMe = it },
-                        colors = CheckboxDefaults.colors(checkedColor = PrimaryBlue)
+                        colors = CheckboxDefaults.colors(checkedColor = AppColors.PrimaryBlue)
                     )
                     Text("Ghi nhớ mật khẩu", fontSize = 14.sp)
                 }
@@ -198,7 +203,6 @@ fun LoginScreenContent(
                         onLogin(LoginRequest(email, password))
                     } else {
                         val msg = when {
-
                             email.isBlank() || password.isBlank() -> "Vui lòng điền đầy đủ thông tin"
                             !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> "Email không đúng định dạng"
                             else -> "Thông tin không hợp lệ"
@@ -208,7 +212,7 @@ fun LoginScreenContent(
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape    = RoundedCornerShape(12.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                colors   = ButtonDefaults.buttonColors(containerColor = AppColors.PrimaryBlue),
                 enabled  = authState !is AuthState.Loading
             ) {
                 if (authState is AuthState.Loading) {
@@ -222,7 +226,7 @@ fun LoginScreenContent(
 
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 HorizontalDivider(modifier = Modifier.weight(1f), thickness = 1.dp, color = Color.LightGray)
-                Text("  Hoặc đăng nhập bằng  ", modifier = Modifier.padding(horizontal = 4.dp), color = GrayText, fontSize = 12.sp)
+                Text("  Hoặc đăng nhập bằng  ", modifier = Modifier.padding(horizontal = 4.dp), color = AppColors.GrayText, fontSize = 12.sp)
                 HorizontalDivider(modifier = Modifier.weight(1f), thickness = 1.dp, color = Color.LightGray)
             }
 
@@ -230,18 +234,20 @@ fun LoginScreenContent(
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 SocialLoginButton(
-                    text            = "Đăng nhập với Facebook",
+                    text            = "Facebook",
                     icon            = "f",
-                    backgroundColor = FacebookBlue,
+                    backgroundColor = AppColors.FacebookBlue,
                     modifier        = Modifier.weight(1f),
-                    onClick         = {}
+                    enabled         = authState !is AuthState.Loading,
+                    onClick         = onFacebookLogin
                 )
                 SocialLoginButton(
-                    text            = "Đăng nhập với Google",
+                    text            = "Google",
                     icon            = "G",
-                    backgroundColor = GoogleButtonRed,
+                    backgroundColor = AppColors.GoogleButtonRed,
                     modifier        = Modifier.weight(1f),
-                    onClick         = {}
+                    enabled         = authState !is AuthState.Loading,
+                    onClick         = onGoogleLogin
                 )
             }
 
@@ -255,7 +261,7 @@ fun LoginScreenContent(
                 TextButton(onClick = onRegisterClick, contentPadding = PaddingValues(0.dp)) {
                     Text(
                         text = "Đăng kí ngay",
-                        color = PrimaryBlue,
+                        color = AppColors.PrimaryBlue,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )

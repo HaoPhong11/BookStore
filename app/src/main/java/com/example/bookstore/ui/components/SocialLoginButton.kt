@@ -21,13 +21,18 @@ fun SocialLoginButton(
     icon: String,
     backgroundColor: Color,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Button(
         onClick = onClick,
         modifier = modifier.height(56.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = backgroundColor),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = backgroundColor,
+            disabledContainerColor = backgroundColor.copy(alpha = 0.6f)
+        ),
+        enabled = enabled,
         contentPadding = PaddingValues(horizontal = 8.dp)
     ) {
         Row(
@@ -51,4 +56,3 @@ fun SocialLoginButton(
         }
     }
 }
-

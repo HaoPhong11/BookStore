@@ -1,16 +1,12 @@
 package com.example.bookstore.ui.screens
 
-
-import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -40,7 +36,7 @@ fun MainScreen() {
     // Hiển thị bottom nav trên 4 tab chính và màn hình chi tiết danh mục
     val mainRoutes    = setOf("home", "category", "cart", "account")
     val showBottomBar = currentRoute in mainRoutes ||
-                        currentRoute?.startsWith("category_detail/") == true
+            currentRoute?.startsWith("category_detail/") == true
 
     Scaffold(
         bottomBar = {
