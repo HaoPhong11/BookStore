@@ -30,7 +30,9 @@ fun AppBottomNavigation(navController: NavController) {
             NavigationBarItem(
                 icon = { Icon(imageVector = item.icon, contentDescription = item.title) },
                 label = { Text(text = item.title) },
-                selected = currentRoute == item.route,
+                selected = currentRoute == item.route ||
+                           (item.route == BottomNavItem.Category.route &&
+                            currentRoute?.startsWith("category_detail/") == true),
                 onClick = {
                     navController.navigate(item.route) {
 
