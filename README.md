@@ -76,6 +76,7 @@ app/src/main/java/com/example/bookstore/
     ├── CheckoutViewModel.kt
     ├── HomeViewModel.kt
     └── LoginViewModel.kt
+    └── AuthViewModel.kt             # Quản lý đăng nhập/đăng ký tập trung
 ```
 
 ---
@@ -105,6 +106,8 @@ app/src/main/java/com/example/bookstore/
 | `LoginScreen.kt` / `AccountViewModel.kt` | Sau đăng nhập, `AccountViewModel` (Activity-scoped) không tự reload profile → ProfileScreen & CheckoutScreen trống | ✅ Fixed — `LoginScreen` nhận `accountViewModel`, gọi `loadProfile()` sau `loginSuccess`; `AccountScreen` gọi `loadProfile()` trong `LaunchedEffect(Unit)` |
 | `ProfileScreen.kt` | Dialog "Lưu thành công" không hiển thị — `LaunchedEffect(Unit)` bên trong `if (updateSuccess)` reset flag về `false` ngay lập tức | ✅ Fixed — xóa `LaunchedEffect` xấu; chỉ reset `updateSuccess` trong confirmButton |
 | `CheckoutScreen.kt` | Form không pre-fill khi đi Cart → Checkout (không qua AccountScreen, profile chưa load) | ✅ Fixed — thêm `LaunchedEffect(Unit) { accountViewModel.loadProfile() }`; dùng `isPrefilled` flag để chỉ fill 1 lần khi profile load xong |
+| `LoginScreen.kt` / `RegisterScreen.kt` | Nút Facebook/Google chỉ hiện thông báo "đang phát triển" | ✅ Fixed — Tích hợp chức năng đăng nhập/đăng ký giả lập (mock) qua `AuthViewModel` |
+| `RegisterScreen.kt` | Không xem được điều khoản dịch vụ và chính sách bảo mật | ✅ Fixed — Thêm `AlertDialog` hiển thị nội dung chi tiết khi nhấn vào các liên kết tương ứng |
 
 ---
 
@@ -113,8 +116,8 @@ app/src/main/java/com/example/bookstore/
 | File | Nội dung | Tham chiếu PDF |
 |------|----------|----------------|
 | `ui/components/AuthTextField.kt` | Component text field tái sử dụng cho Login/Register (label, leadingIcon, password toggle, isError) | §4.1.3 |
-| `ui/components/SocialLoginButton.kt` | Nút đăng nhập Facebook/Google | §4.1.3 |
-| `viewmodel/AuthViewModel.kt` | `sealed class AuthState` (Idle/Loading/LoginSuccess/Error) + `StateFlow<AuthState>` + `login(LoginRequest)` | §3.1.4 + §5.1.1 |
+| `ui/components/SocialLoginButton.kt` | Nút đăng nhập Facebook/Google với hỗ trợ `enabled` state | §4.1.3 |
+| `viewmodel/AuthViewModel.kt` | `sealed class AuthState` (Idle/Loading/LoginSuccess/Error) + `StateFlow<AuthState>` + `loginWithSocial` (mock) | §3.1.4 + §5.1.1 |
 | `ui/state/UiState.kt` | `sealed class UiState<out T>` (Loading / Success / Error) | §3.1.4 Sealed Class + §3.3.2 |
 | `data/model/Category.kt` | `data class Category` + `companion object` với list 12 danh mục | §2.3.2 Data Class |
 | `ui/theme/Theme.kt` | `BookStoreTheme {}` bọc `MaterialTheme` | §4.1.3 Theming |
@@ -140,8 +143,9 @@ app/src/main/java/com/example/bookstore/
 | `OrderHistoryScreen.kt` | Xóa `toVndOH()` → dùng `toVnd()`; `Divider` → `HorizontalDivider`; fix deprecated `ArrowBack` |
 | `CategoryDetailScreen.kt` | `BookCard` dùng `Column(fillMaxHeight)` + `weight(1f)` + `SpaceBetween` để đồng đều chiều cao |
 | 9 screen files | Xóa private color constant, dùng `AppColors.PrimaryBlue` / `AppColors.PriceColor` / `AppColors.StarYellow` |
-| `LoginScreen.kt` | **Merge với nhánh nghia**: thay toàn bộ UI bằng `LoginScreenContent` của Nghĩa (email validation, `AuthTextField`, `SocialLoginButton`, `CenterAlignedTopAppBar`); giữ `LoginScreen` wrapper với `NavController` + `accountViewModel` của mình; dùng `AuthViewModel`/`AuthState` thay `LoginViewModel` |
-| `ui/theme/Color.kt` | Thêm top-level color vals: `PrimaryBlue`, `GrayText`, `FacebookBlue`, `GoogleButtonRed` (để `import com.example.bookstore.ui.theme.*` trong module login của Nghĩa hoạt động) |
+| `LoginScreen.kt` | Tích hợp chức năng đăng nhập giả lập cho Facebook/Google |
+| `RegisterScreen.kt` | Thêm hộp thoại (Dialog) hiển thị Điều khoản dịch vụ và Chính sách bảo mật; tích hợp đăng ký giả lập |
+| `ui/theme/Color.kt` | Thêm top-level color vals: `PrimaryBlue`, `GrayText`, `FacebookBlue`, `GoogleButtonRed` |
 | `UserRequest.kt` | Thêm `province: String` và `district: String` (gửi lên khi save profile) |
 | `AccountViewModel.kt` | Thêm `editProvince`, `editDistrict`; cập nhật `loadProfile()`/`saveProfile()`; thêm `applyShippingInfo()` |
 | `ProfileScreen.kt` | Thêm 2 trường `Tỉnh/Thành phố`, `Quận/Huyện`; đổi "Địa chỉ" → "Địa chỉ chi tiết"; nhận `viewModel` từ ngoài |
@@ -156,42 +160,20 @@ app/src/main/java/com/example/bookstore/
 Mặc định `selected = currentRoute == item.route` chỉ khớp **chính xác** route.  
 Khi navigate sang màn hình con (sub-screen), route thay đổi → tab bị **bỏ highlight**, user mất orientation.
 
-**Ví dụ:** User đang ở tab Danh mục → bấm vào 1 danh mục → route đổi thành `category_detail/3`  
-→ Không tab nào được highlight ❌
+## ✅ Các cải tiến & Fix lỗi quan trọng
 
-**Fix hiện tại** (đã áp dụng cho Category):
-```kotlin
-selected = currentRoute == item.route ||
-           (item.route == BottomNavItem.Category.route &&
-            currentRoute?.startsWith("category_detail/") == true)
-```
-
-### Hướng giải quyết khi mở rộng
-
-> Bất kỳ khi nào thêm **sub-screen mới** cho một tab, cần bổ sung điều kiện tương ứng:
-
-| Tab | Sub-screen tương lai | Điều kiện cần thêm |
-|-----|---------------------|-------------------|
-| Home | `product_detail/{id}` | `currentRoute?.startsWith("product_detail/") == true` |
-| Cart | `order_confirm` | `currentRoute == "order_confirm"` |
-| Account | `edit_profile`, `change_password`, `order_history`, `settings` | `currentRoute in listOf("edit_profile", "change_password", ...)` |
-
-**Refactor gợi ý** khi số lượng sub-screen nhiều lên:
-```kotlin
-// Định nghĩa map sub-routes trong BottomNavItem thay vì hardcode trong AppBottomNavigation
-sealed class BottomNavItem(val route: String, val subRoutes: List<String> = emptyList(), ...) {
-    object Category : BottomNavItem("category", subRoutes = listOf("category_detail"))
-    object Account  : BottomNavItem("account",  subRoutes = listOf("profile", "order_history", "settings", "change_password"))
-}
-
-// Sau đó trong AppBottomNavigation:
-selected = currentRoute == item.route ||
-           item.subRoutes.any { currentRoute?.startsWith(it) == true }
-```
+| Chức năng | Vấn đề / Yêu cầu | Trạng thái thực hiện |
+|-----------|------------------|----------------------|
+| **Social Auth** | Nút Facebook/Google chưa hoạt động | ✅ **Đã tích hợp giả lập (Mock)**: Xử lý loading 1.5s, tự động đăng nhập và lưu Token giả lập vào hệ thống để demo luồng người dùng hoàn chỉnh. |
+| **Register UX** | Không xem được Điều khoản & Chính sách | ✅ **Fixed**: Thêm `AlertDialog` hiển thị nội dung chi tiết khi người dùng nhấn vào các liên kết màu xanh trong màn hình đăng ký. |
+| **User Profile** | Dữ liệu không đồng bộ giữa các màn hình | ✅ **Fixed**: Hoist `AccountViewModel` tại `MainScreen` để chia sẻ dữ liệu profile giữa Checkout, Account và Profile screen. |
+| **Checkout UI** | Phải nhập lại thông tin giao hàng nhiều lần | ✅ **Fixed**: Tự động lấy thông tin từ Profile để điền vào Form thanh toán; cập nhật ngược lại Profile sau khi đặt hàng thành công. |
+| **Product UI** | Chiều cao Card sách không đều | ✅ **Fixed**: Chuẩn hóa chiều cao `BookCard` (310.dp) và dùng `weight(1f)` để căn chỉnh các thành phần Text/Button đồng nhất. |
+| **Price Fix** | Lỗi hiển thị giá từ Google Books | ✅ **Fixed**: Chuyển đổi giá USD từ API sang VND hợp lý, xử lý các trường hợp sách không có giá (hiển thị "Liên hệ"). |
 
 ---
 
-## 🔬 Mapping kỹ thuật → Module
+## 🔬 Mapping kỹ thuật → Module (Theo PDF học phần)
 
 | Kỹ thuật PDF | Module | File |
 |--------------|--------|------|
@@ -210,7 +192,12 @@ selected = currentRoute == item.route ||
 | Coroutines `viewModelScope` (§3.3.4) | Danh mục | `CategoryViewModel` |
 | Hilt `@HiltViewModel` (§Ch.6) | Danh mục | `CategoryViewModel` |
 | `MaterialTheme` + Theming + `AppColors` (§4.1.3) | App-wide | `Theme.kt`, `Color.kt`, 9 screen files |
-
+| `StateFlow` + `collectAsState` (§5.1.1) | Xác thực | `AuthViewModel` + `LoginScreen` |
+| `AnimatedVisibility` (§4.1.4) | Tài khoản | `AccountScreen.kt` |
+| `rememberSaveable` (§4.1.3) | Thanh toán | `CheckoutScreen.kt` |
+| ViewModel hoisting (§4.1.3) | Toàn ứng dụng | `MainScreen.kt` quản lý `AccountViewModel` |
+| `@Preview` (§4.1.3) | UI Components | `SocialLoginButton.kt`, `CartScreen.kt` |
+| `HorizontalDivider` (M3) | Bố cục | Thay thế `Divider` cũ đã deprecated |
 ---
 
 ## 📱 Màn hình
@@ -232,7 +219,7 @@ selected = currentRoute == item.route ||
 
 ---
 
-## ⚙️ Cấu hình môi trường (RetrofitClient.kt)
+## ⚙️ Lưu ý về Môi trường (RetrofitClient.kt)
 
 ```kotlin
 // true  = chạy backend local (IntelliJ)
@@ -243,8 +230,8 @@ private const val LOCAL_URL      = "http://192.168.1.5:8081/"
 private const val PRODUCTION_URL = "https://bookstore-backend-production-4b7e.up.railway.app/"
 ```
 
-> ⚠️ Khi dùng **điện thoại thật**, đảm bảo điện thoại và máy tính **cùng WiFi** và đổi IP tương ứng.  
-> Khi dùng **Android Emulator**, đổi IP thành `10.0.2.2` (alias của `localhost` máy tính).
+*   **Emulator**: Dùng IP `10.0.2.2`.
+*   **Thiết bị thật**: Dùng IP nội bộ của máy tính (ví dụ `192.168.1.x`) và cùng mạng WiFi.
 
 ---
 
@@ -263,4 +250,4 @@ private const val PRODUCTION_URL = "https://bookstore-backend-production-4b7e.up
 - **targetSdk / compileSdk**: 36
 - **JVM Target**: 11
 - **Android Studio**: Hedgehog trở lên
-
+- **Gradle**: 8.x
