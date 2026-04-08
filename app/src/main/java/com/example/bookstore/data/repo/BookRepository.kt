@@ -24,6 +24,32 @@ class BookRepository(private val api: GoogleBooksApiService) {
     }
 
 
+    /**
+     * Phiên bản trả về Result<List<Book>> thay vì List<Book>.
+     * Cho phép CategoryViewModel phân biệt thành công / thất bại
+     * để ánh xạ sang UiState.Success / UiState.Error.
+     *
+     * Null Safety:
+     *   - response.body()?.items  → Safe Call Operator (?.)
+     *   - ?: emptyList()          → Elvis Operator
+     *   - error.message ?: "..."  → Elvis Operator khi message có thể null
+     * — PDF §3.3.3 Null Safety trong xử lý dữ liệu API
+     */
+    suspend fun getBooksResult(query: String): Result<List<Book>> {
+        return try {
+            val response = api.searchBooks(query)
+            if (response.isSuccessful) {
+                val items = response.body()?.items ?: emptyList()   // Null Safety: ?.items ?: emptyList()
+                Result.success(items.map { it.toDomainModel() })
+            } else {
+                Result.failure(Exception("Không tải được sách (HTTP ${response.code()})"))
+            }
+        } catch (e: Exception) {
+            // Elvis operator: nếu e.message là null thì dùng chuỗi mặc định
+            Result.failure(Exception("Lỗi kết nối: ${e.message ?: "Không xác định"}"))
+        }
+    }
+
     private fun BookItem.toDomainModel(): Book {
         val bookPrice = this.saleInfo?.retailPrice?.amount
             ?: this.saleInfo?.listPrice?.amount

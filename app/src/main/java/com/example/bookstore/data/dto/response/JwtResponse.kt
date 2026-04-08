@@ -1,8 +1,10 @@
 package com.example.bookstore.data.dto.response
 
+import com.google.gson.annotations.SerializedName
+
 data class JwtResponse(
-    val token: String,
-    val userId: Long,
-    val username: String,
-    val email: String?
+    @SerializedName("accessToken") val token: String,  // backend trả "accessToken"
+    val tokenType: String? = null,
+    @SerializedName("id") val userId: Long? = null,    // backend trả "id" (không phải "userId")
+    val username: String? = null
 )

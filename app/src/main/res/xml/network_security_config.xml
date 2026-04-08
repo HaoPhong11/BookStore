@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+        Cho phép HTTP (cleartext) khi kết nối đến backend local trên máy tính.
+        10.0.2.2 = địa chỉ của máy host khi chạy trên Android Emulator.
+        Chỉ áp dụng cho debug — production vẫn dùng HTTPS Railway.
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+
+    <!-- Điện thoại thật kết nối qua WiFi cùng mạng LAN -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.1.5</domain>
+    </domain-config>
+</network-security-config>
+
+
+
