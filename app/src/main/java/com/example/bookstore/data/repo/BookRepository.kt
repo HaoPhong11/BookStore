@@ -23,6 +23,19 @@ class BookRepository(private val api: GoogleBooksApiService) {
         }
     }
 
+    suspend fun getBookById(id: String): Book? {
+        return try {
+            val response = api.getBookById(id)
+            if (response.isSuccessful) {
+                response.body()?.toDomainModel()
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
 
     /**
      * Phiên bản trả về Result<List<Book>> thay vì List<Book>.
@@ -60,9 +73,11 @@ class BookRepository(private val api: GoogleBooksApiService) {
             author = this.volumeInfo?.authors?.firstOrNull() ?: "Khuyết danh",
 
             imageUrl = this.volumeInfo?.imageLinks?.thumbnailUrl?.replace("http:", "https:") ?: "",
-            describe = this.volumeInfo?.description ?: " ",
+            describe = this.volumeInfo?.description?.replace(Regex("<.*?>"), "") ?: "Đang cập nhật mô tả...",
             price = bookPrice
 
         )
     }
+
+
 }

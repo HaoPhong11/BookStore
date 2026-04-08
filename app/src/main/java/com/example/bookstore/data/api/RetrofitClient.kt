@@ -47,4 +47,8 @@ object RetrofitClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
+
+    val apiService: GoogleBooksApiService by lazy {
+        instance.create(GoogleBooksApiService::class.java)
+    }
 }

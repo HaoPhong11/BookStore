@@ -8,6 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 @Composable
@@ -37,7 +38,9 @@ fun AppBottomNavigation(navController: NavController) {
                     navController.navigate(item.route) {
 
                         navController.graph.startDestinationRoute?.let { route ->
-                            popUpTo(route) { saveState = true }
+                            popUpTo(route) {
+                                saveState = true
+                            }
                         }
                         launchSingleTop = true
                         restoreState = true
