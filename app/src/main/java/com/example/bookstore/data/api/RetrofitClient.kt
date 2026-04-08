@@ -19,7 +19,7 @@ object RetrofitClient {
     //   - Máy ảo Android Emulator → dùng 10.0.2.2 (alias của localhost máy tính)
     //   - Điện thoại thật          → dùng IP LAN của máy tính (192.168.1.5)
     //     ⚠️ Điện thoại và máy tính phải cùng WiFi
-    private const val LOCAL_URL = "http://192.168.1.5:8081/"
+    private const val LOCAL_URL = "http://192.168.102.4:8081/"
 
     // *** CHỈNH DÒNG NÀY để chuyển đổi môi trường ***
     // true  = chạy backend local (IntelliJ)

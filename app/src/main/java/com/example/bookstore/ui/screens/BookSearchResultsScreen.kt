@@ -20,12 +20,16 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,7 +43,10 @@ import com.example.bookstore.data.model.Book
 import com.example.bookstore.ui.components.BookCard
 import com.example.bookstore.ui.components.FilterBar
 import com.example.bookstore.ui.components.SearchTopBar
+import com.example.bookstore.utils.displayPrice
+import com.example.bookstore.viewmodel.CartViewModel
 import com.example.bookstore.viewmodel.SearchViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun BookSearchResultsScreen(
@@ -48,13 +55,16 @@ fun BookSearchResultsScreen(
     onBookClick: (String) -> Unit,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     var searchQuery by remember { mutableStateOf(initialQuery) }
-
+    val cartViewModel: CartViewModel = hiltViewModel()
     LaunchedEffect(initialQuery) {
         viewModel.searchBooks(initialQuery)
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             Column {
                 //Thanh Search
@@ -91,7 +101,19 @@ fun BookSearchResultsScreen(
                 SearchResultContentView(
                     books = viewModel.books,
                     query = searchQuery,
-                    onBookClick = onBookClick
+                    onBookClick = onBookClick,
+                    onAddToCart = { selectedBook ->
+                        // Chuẩn hóa giá tiền
+                        cartViewModel.addBook(selectedBook.copy(price = selectedBook.displayPrice()))
+
+                        // Bắn thông báo lên
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "Đã thêm \"${selectedBook.title}\" vào giỏ",
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    }
                 )
             }
         }
@@ -104,7 +126,8 @@ fun BookSearchResultsScreen(
 fun SearchResultContentView(
     books: List<Book>,
     query: String,
-    onBookClick: (String) -> Unit) {
+    onBookClick: (String) -> Unit,
+    onAddToCart: (Book) -> Unit) {
     Column {
         Box(
             modifier = Modifier
@@ -139,7 +162,7 @@ fun SearchResultContentView(
             modifier = Modifier.weight(1f)
         ) {
             items(books) { book ->
-                BookCard(book = book, onBookClick = onBookClick)
+                BookCard(book = book, onBookClick = onBookClick,onAddToCart = { onAddToCart(book) })
             }
         }
     }

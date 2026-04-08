@@ -2,22 +2,11 @@ package com.example.bookstore.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,73 +15,142 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.bookstore.data.model.Book
-import kotlin.math.ceil
+import com.example.bookstore.ui.theme.AppColors
+import com.example.bookstore.utils.displayPrice
+import com.example.bookstore.utils.toVnd
+import kotlin.math.absoluteValue
 
 @Composable
-fun BookCard(book: Book, onBookClick: (String) -> Unit) {
+fun BookCard(
+    book: Book,
+    onBookClick: (String) -> Unit,
+    onAddToCart: () -> Unit
+) {
+    // Các logic tính toán UI từ phiên bản đẹp (1)
+    val price         = book.displayPrice()
+    val discountPct   = (book.id.hashCode().absoluteValue % 20 + 5)
+    val originalPrice = price / (1 - discountPct / 100.0)
+    val rating      = 3 + (book.id.hashCode().absoluteValue % 3)
+    val reviewCount = 50 + (book.id.hashCode().absoluteValue % 200)
+
     Card(
-        modifier = Modifier
+        shape     = RoundedCornerShape(12.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
+        modifier  = Modifier
             .fillMaxWidth()
-            .clickable { onBookClick(book.id) },
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .height(360.dp)
+            .clickable { onBookClick(book.id) }
     ) {
-        Column(modifier = Modifier.padding(8.dp)) {
-            AsyncImage(
-                model = book.imageUrl,
-                contentDescription = "Bìa sách ${book.title}",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(Color(0xFFF0F0F0)),
-                contentScale = ContentScale.Crop
-            )
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Ảnh bìa + badge giảm giá
+            Box(modifier = Modifier.fillMaxWidth()) {
+                AsyncImage(
+                    model              = book.imageUrl,
+                    contentDescription = book.title,
+                    contentScale       = ContentScale.Crop,
+                    modifier           = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Tiêu đề sách
-            Text(
-                text = book.title,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                maxLines = 2,
-                minLines = 2
-            )
-
-            // Tác giả
-            Text(
-                text = book.author,
-                fontSize = 11.sp,
-                color = Color.Gray,
-                maxLines = 1
-            )
-
-            // Đánh giá sao
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
-                repeat(5) {
-                    Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFC107), modifier = Modifier.size(12.dp))
+                // Discount badge
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(AppColors.PriceColor)
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text       = "-$discountPct%",
+                        color      = Color.White,
+                        fontSize   = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
-            val roundedPrice = ceil(book.price / 1000.0) * 1000.0
-            val priceString = if (roundedPrice > 0) {
-                String.format("%,.0fđ", roundedPrice).replace(",", ".")
-            } else {
-                "Miễn phí"
-            }
+            Column(
+                modifier            = Modifier.padding(8.dp).weight(1f),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                // --- Phần trên: Tiêu đề, tác giả, sao ---
+                Column {
+                    Text(
+                        text       = book.title,
+                        fontWeight = FontWeight.Bold,
+                        fontSize   = 13.sp,
+                        minLines   = 2,
+                        maxLines   = 2,
+                        overflow   = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text     = book.author,
+                        color    = Color.Gray,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    // Sao + số lượt đánh giá
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        repeat(5) { i ->
+                            Text(
+                                text  = if (i < rating) "★" else "☆",
+                                color = if (i < rating) AppColors.StarYellow else Color.LightGray,
+                                fontSize = 12.sp
+                            )
+                        }
+                        Spacer(Modifier.width(3.dp))
+                        Text(
+                            text     = "($reviewCount)",
+                            color    = Color.Gray,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
 
-            Text(
-                text = priceString,
-                color = Color.Red,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
-            )
+                Column {
+                    Text(
+                        text       = price.toVnd(),
+                        color      = AppColors.PriceColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize   = 13.sp
+                    )
+                    Text(
+                        text           = originalPrice.toVnd(),
+                        color          = Color.Gray,
+                        fontSize       = 11.sp,
+                        textDecoration = TextDecoration.LineThrough
+                    )
+                    Spacer(Modifier.height(6.dp))
+
+
+                    Button(
+                        onClick        = onAddToCart,
+                        shape          = RoundedCornerShape(8.dp),
+                        colors         = ButtonDefaults.buttonColors(containerColor = AppColors.PrimaryBlue),
+                        modifier       = Modifier.fillMaxWidth().height(34.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.ShoppingCart,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint     = Color.White
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("Thêm vào giỏ", color = Color.White, fontSize = 11.sp)
+                    }
+                }
+            }
         }
     }
 }

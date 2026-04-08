@@ -11,7 +11,7 @@
 
     <!-- Điện thoại thật kết nối qua WiFi cùng mạng LAN -->
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">192.168.1.5</domain>
+        <domain includeSubdomains="false">192.168.102.4</domain>
     </domain-config>
 </network-security-config>
 

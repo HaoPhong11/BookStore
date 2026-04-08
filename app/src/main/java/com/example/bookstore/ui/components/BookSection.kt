@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,9 +19,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.bookstore.data.model.Book
+import com.example.bookstore.utils.displayPrice
+import kotlinx.coroutines.launch
 
 @Composable
-fun BookSection(title: String, books: List<Book>, onBookClick: (String) -> Unit) {
+fun BookSection(title: String, books: List<Book>, onBookClick: (String) -> Unit, onAddToCart: (Book) -> Unit) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -38,12 +41,15 @@ fun BookSection(title: String, books: List<Book>, onBookClick: (String) -> Unit)
             Row(modifier = Modifier.fillMaxWidth()) {
                 // Cuốn sách bên Trái
                 Box(modifier = Modifier.weight(1f)) {
-                    BookCard(book = rowBooks[0], onBookClick = onBookClick)
+                    BookCard(book = rowBooks[0], onBookClick = onBookClick, onAddToCart = { onAddToCart(rowBooks[0]) })
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Box(modifier = Modifier.weight(1f)) {
                     if (rowBooks.size > 1) {
-                        BookCard(book = rowBooks[1], onBookClick = onBookClick)
+                        BookCard(book = rowBooks[1],
+                            onBookClick = onBookClick,
+                            onAddToCart = { onAddToCart(rowBooks[1]) }
+                        )
                     }
                 }
             }

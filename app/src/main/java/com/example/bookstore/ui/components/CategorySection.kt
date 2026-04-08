@@ -10,6 +10,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.ChildCare
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -51,17 +60,17 @@ fun CategorySection(onViewAllClick: () -> Unit) {
 
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            CategoryItem("Văn học")
-            CategoryItem("Kinh tế")
-            CategoryItem("Tâm lý học")
-            CategoryItem("Thiếu nhi")
+            CategoryItem("Văn học", Icons.AutoMirrored.Outlined.MenuBook)
+            CategoryItem("Kinh tế", Icons.AutoMirrored.Outlined.TrendingUp)
+            CategoryItem("Tâm lý học", Icons.Outlined.Psychology)
+            CategoryItem("Thiếu nhi",Icons.Outlined.ChildCare)
         }
         Spacer(modifier = Modifier.height(16.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            CategoryItem("Giáo khoa")
-            CategoryItem("Nghệ thuật")
-            CategoryItem("Lịch sử")
-            CategoryItem("Khoa học")
+            CategoryItem("Giáo khoa",Icons.Outlined.School)
+            CategoryItem("Nghệ thuật",Icons.Outlined.Palette)
+            CategoryItem("Lịch sử",Icons.Outlined.AccountBalance)
+            CategoryItem("Khoa học",Icons.Outlined.Science)
         }
     }
 }

@@ -37,6 +37,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.bookstore.data.model.Book
 import com.example.bookstore.data.model.Category
+import com.example.bookstore.ui.components.BookCard
 import com.example.bookstore.ui.state.UiState
 import com.example.bookstore.ui.theme.AppColors
 import com.example.bookstore.utils.toVnd
@@ -264,7 +265,12 @@ fun CategoryDetailScreen(
                         ) {
                             items(books, key = { it.id }) { book ->
                                 BookCard(
-                                    book        = book,
+                                    book = book,
+                                    // 🌟 1. Bổ sung Action nhấn vào thẻ để chuyển trang chi tiết
+                                    onBookClick = { bookId ->
+                                        navController.navigate("book_detail/$bookId")
+                                    },
+                                    // 🌟 2. Action thêm giỏ hàng của ông (Giữ nguyên logic rất xịn của ông)
                                     onAddToCart = {
                                         // book.copy(price = book.displayPrice()):
                                         // Normalize giá trước khi lưu vào giỏ hàng.
@@ -272,6 +278,7 @@ fun CategoryDetailScreen(
                                         // displayPrice() sẽ convert sang giá VND hợp lệ.
                                         // Không dùng book thô vì CartScreen dùng book.price trực tiếp.
                                         cartViewModel.addBook(book.copy(price = book.displayPrice()))
+
                                         coroutineScope.launch {
                                             snackbarHostState.showSnackbar(
                                                 message  = "Đã thêm \"${book.title}\" vào giỏ",
@@ -294,155 +301,155 @@ fun CategoryDetailScreen(
  * Hiển thị: ảnh bìa, badge giảm giá, tiêu đề, tác giả,
  * đánh giá sao, giá sale (đỏ) + giá gốc (gạch ngang), nút thêm giỏ.
  */
-@Composable
-fun BookCard(
-    book: Book,
-    onAddToCart: () -> Unit
-) {
-    // displayPrice() — Extension Function — PDF §3.1.2
-    // Luôn trả về giá > 0, kể cả khi API không có giá
-    val price         = book.displayPrice()
-    // Mock discount: hash ID để mỗi sách có % giảm khác nhau — Null Safety: .absoluteValue
-    val discountPct   = (book.id.hashCode().absoluteValue % 20 + 5)        // 5% – 24%
-    val originalPrice = price / (1 - discountPct / 100.0)
-    // Mock rating 3–5 sao + số lượt đánh giá 50–249 — dựa trên hash ID
-    val rating      = 3 + (book.id.hashCode().absoluteValue % 3)
-    val reviewCount = 50 + (book.id.hashCode().absoluteValue % 200)
+//@Composable
+//fun BookCard(
+//    book: Book,
+//    onAddToCart: () -> Unit
+//) {
+//    // displayPrice() — Extension Function — PDF §3.1.2
+//    // Luôn trả về giá > 0, kể cả khi API không có giá
+//    val price         = book.displayPrice()
+//    // Mock discount: hash ID để mỗi sách có % giảm khác nhau — Null Safety: .absoluteValue
+//    val discountPct   = (book.id.hashCode().absoluteValue % 20 + 5)        // 5% – 24%
+//    val originalPrice = price / (1 - discountPct / 100.0)
+//    // Mock rating 3–5 sao + số lượt đánh giá 50–249 — dựa trên hash ID
+//    val rating      = 3 + (book.id.hashCode().absoluteValue % 3)
+//    val reviewCount = 50 + (book.id.hashCode().absoluteValue % 200)
+//
+//    // height(340.dp) cố định — tính toán với minLines=2:
+//    // • Image: 150dp | Padding ×2: 16dp → content space: 340-150-16 = 174dp
+//    // • Top group  : title(2 dòng ~40) + author(~17) + stars(~17) = 74dp
+//    // • Bottom group: price(~20) + origPrice(~17) + spacer(6) + button(34) = 77dp
+//    // • Tổng cần: 151dp < 174dp ✓  buffer 23dp → nút luôn hiển thị đầy đủ
+//    Card(
+//        shape     = RoundedCornerShape(12.dp),
+//        colors    = CardDefaults.cardColors(containerColor = Color.White),
+//        elevation = CardDefaults.cardElevation(2.dp),
+//        modifier  = Modifier.fillMaxWidth().height(360.dp)
+//    ) {
+//        Column(modifier = Modifier.fillMaxSize()) {
+//            // Ảnh bìa + badge giảm giá
+//            Box(modifier = Modifier.fillMaxWidth()) {
+//                AsyncImage(
+//                    model              = book.imageUrl,
+//                    contentDescription = book.title,
+//                    contentScale       = ContentScale.Crop,
+//                    modifier           = Modifier
+//                        .fillMaxWidth()
+//                        .height(150.dp)
+//                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+//                )
+//                // Discount badge — luôn hiện vì displayPrice() đảm bảo price > 0
+//                Box(
+//                    modifier = Modifier
+//                        .align(Alignment.TopEnd)
+//                        .padding(6.dp)
+//                        .clip(RoundedCornerShape(4.dp))
+//                        .background(AppColors.PriceColor)
+//                        .padding(horizontal = 4.dp, vertical = 2.dp)
+//                ) {
+//                    Text(
+//                        text       = "-$discountPct%",
+//                        color      = Color.White,
+//                        fontSize   = 10.sp,
+//                        fontWeight = FontWeight.Bold
+//                    )
+//                }
+//            }
+//
+//            // weight(1f): vùng text chiếm hết 135dp còn lại,
+//            // SpaceBetween đẩy nút "Thêm vào giỏ" xuống đáy card
+//            Column(
+//                modifier            = Modifier.padding(8.dp).weight(1f),
+//                verticalArrangement = Arrangement.SpaceBetween
+//            ) {
+//                // --- Phần trên: tiêu đề, tác giả, sao ---
+//                Column {
+//                    Text(
+//                        text       = book.title,
+//                        fontWeight = FontWeight.Bold,
+//                        fontSize   = 13.sp,
+//                        minLines   = 2,   // title ngắn vẫn chiếm 2 dòng → card căn đều
+//                        maxLines   = 2,
+//                        overflow   = TextOverflow.Ellipsis
+//                    )
+//                    Text(
+//                        text     = book.author,
+//                        color    = Color.Gray,
+//                        fontSize = 11.sp,
+//                        maxLines = 1,
+//                        overflow = TextOverflow.Ellipsis
+//                    )
+//                    // Sao + số lượt đánh giá — Figma style: "★★★★☆ (120)"
+//                    Row(verticalAlignment = Alignment.CenterVertically) {
+//                        repeat(5) { i ->
+//                            Text(
+//                                text  = if (i < rating) "★" else "☆",
+//                                color = if (i < rating) AppColors.StarYellow else Color.LightGray,
+//                                fontSize = 12.sp
+//                            )
+//                        }
+//                        Spacer(Modifier.width(3.dp))
+//                        Text(
+//                            text     = "($reviewCount)",
+//                            color    = Color.Gray,
+//                            fontSize = 10.sp
+//                        )
+//                    }
+//                }
+//
+//                // --- Phần dưới: giá + nút (luôn ở đáy card) ---
+//                Column {
+//                    Text(
+//                        text       = price.toVnd(),
+//                        color      = AppColors.PriceColor,
+//                        fontWeight = FontWeight.Bold,
+//                        fontSize   = 13.sp
+//                    )
+//                    Text(
+//                        text           = originalPrice.toVnd(),
+//                        color          = Color.Gray,
+//                        fontSize       = 11.sp,
+//                        textDecoration = TextDecoration.LineThrough
+//                    )
+//                    Spacer(Modifier.height(6.dp))
+//                    Button(
+//                        onClick        = onAddToCart,
+//                        shape          = RoundedCornerShape(8.dp),
+//                        colors         = ButtonDefaults.buttonColors(containerColor = AppColors.PrimaryBlue),
+//                        modifier       = Modifier.fillMaxWidth().height(34.dp),
+//                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+//                    ) {
+//                        Icon(
+//                            Icons.Default.ShoppingCart,
+//                            contentDescription = null,
+//                            modifier = Modifier.size(14.dp),
+//                            tint     = Color.White
+//                        )
+//                        Spacer(Modifier.width(4.dp))
+//                        Text("Thêm vào giỏ", color = Color.White, fontSize = 11.sp)
+//                    }
+//                }
+//            }
+//        }
+//    }
+//}
 
-    // height(340.dp) cố định — tính toán với minLines=2:
-    // • Image: 150dp | Padding ×2: 16dp → content space: 340-150-16 = 174dp
-    // • Top group  : title(2 dòng ~40) + author(~17) + stars(~17) = 74dp
-    // • Bottom group: price(~20) + origPrice(~17) + spacer(6) + button(34) = 77dp
-    // • Tổng cần: 151dp < 174dp ✓  buffer 23dp → nút luôn hiển thị đầy đủ
-    Card(
-        shape     = RoundedCornerShape(12.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp),
-        modifier  = Modifier.fillMaxWidth().height(360.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Ảnh bìa + badge giảm giá
-            Box(modifier = Modifier.fillMaxWidth()) {
-                AsyncImage(
-                    model              = book.imageUrl,
-                    contentDescription = book.title,
-                    contentScale       = ContentScale.Crop,
-                    modifier           = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                )
-                // Discount badge — luôn hiện vì displayPrice() đảm bảo price > 0
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(AppColors.PriceColor)
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text       = "-$discountPct%",
-                        color      = Color.White,
-                        fontSize   = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            // weight(1f): vùng text chiếm hết 135dp còn lại,
-            // SpaceBetween đẩy nút "Thêm vào giỏ" xuống đáy card
-            Column(
-                modifier            = Modifier.padding(8.dp).weight(1f),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                // --- Phần trên: tiêu đề, tác giả, sao ---
-                Column {
-                    Text(
-                        text       = book.title,
-                        fontWeight = FontWeight.Bold,
-                        fontSize   = 13.sp,
-                        minLines   = 2,   // title ngắn vẫn chiếm 2 dòng → card căn đều
-                        maxLines   = 2,
-                        overflow   = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text     = book.author,
-                        color    = Color.Gray,
-                        fontSize = 11.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    // Sao + số lượt đánh giá — Figma style: "★★★★☆ (120)"
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        repeat(5) { i ->
-                            Text(
-                                text  = if (i < rating) "★" else "☆",
-                                color = if (i < rating) AppColors.StarYellow else Color.LightGray,
-                                fontSize = 12.sp
-                            )
-                        }
-                        Spacer(Modifier.width(3.dp))
-                        Text(
-                            text     = "($reviewCount)",
-                            color    = Color.Gray,
-                            fontSize = 10.sp
-                        )
-                    }
-                }
-
-                // --- Phần dưới: giá + nút (luôn ở đáy card) ---
-                Column {
-                    Text(
-                        text       = price.toVnd(),
-                        color      = AppColors.PriceColor,
-                        fontWeight = FontWeight.Bold,
-                        fontSize   = 13.sp
-                    )
-                    Text(
-                        text           = originalPrice.toVnd(),
-                        color          = Color.Gray,
-                        fontSize       = 11.sp,
-                        textDecoration = TextDecoration.LineThrough
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Button(
-                        onClick        = onAddToCart,
-                        shape          = RoundedCornerShape(8.dp),
-                        colors         = ButtonDefaults.buttonColors(containerColor = AppColors.PrimaryBlue),
-                        modifier       = Modifier.fillMaxWidth().height(34.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.ShoppingCart,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint     = Color.White
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text("Thêm vào giỏ", color = Color.White, fontSize = 11.sp)
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ==========================================
-// @Preview — PDF §4.1.3
-// ==========================================
-@Preview(showBackground = true, widthDp = 200)
-@Composable
-private fun BookCardPreview() {
-    BookCard(
-        book = Book(
-            id       = "preview_1",
-            title    = "Đắc Nhân Tâm",
-            author   = "Dale Carnegie",
-            describe = "",
-            imageUrl = "",
-            price    = 76500.0
-        ),
-        onAddToCart = {}
-    )
-}
+//// ==========================================
+//// @Preview — PDF §4.1.3
+//// ==========================================
+//@Preview(showBackground = true, widthDp = 200)
+//@Composable
+//private fun BookCardPreview() {
+//    BookCard(
+//        book = Book(
+//            id       = "preview_1",
+//            title    = "Đắc Nhân Tâm",
+//            author   = "Dale Carnegie",
+//            describe = "",
+//            imageUrl = "",
+//            price    = 76500.0
+//        ),
+//        onAddToCart = {}
+//    )
+//}

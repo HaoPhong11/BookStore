@@ -284,10 +284,6 @@ private fun CouponRow(
     }
 }
 
-// ==========================================
-// @Preview — PDF §4.1.3 Jetpack Compose
-// Xem trước CartItemCard mà không cần chạy app
-// ==========================================
 @Preview(showBackground = true)
 @Composable
 private fun CartItemCardPreview() {

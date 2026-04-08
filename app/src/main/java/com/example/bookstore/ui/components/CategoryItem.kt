@@ -16,12 +16,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun CategoryItem(title: String) {
+fun CategoryItem(title: String, icon: ImageVector) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
@@ -30,8 +31,9 @@ fun CategoryItem(title: String) {
                 .background(Color(0xFFE8EAF6)),
             contentAlignment = Alignment.Center
         ) {
+
             // TODO: Thay Icon thật của ông vào đây (R.drawable.ic_vanhoc...)
-            Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFF3B5998))
+            Icon(icon, contentDescription = null, tint = Color(0xFF3B5998))
         }
         Spacer(modifier = Modifier.height(4.dp))
         Text(title, fontSize = 11.sp, fontWeight = FontWeight.Medium)
