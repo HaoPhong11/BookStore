@@ -26,12 +26,12 @@ class CartViewModel @Inject constructor() : ViewModel() {
     val subtotal: Double get() = cartItems.sumOf { it.book.price * it.quantity }
     val total: Double get() = subtotal + shippingFee - discountAmount
 
-    fun addBook(book: Book) {
+    fun addBook(book: Book, quantity: Int = 1) {
         val index = cartItems.indexOfFirst { it.book.id == book.id }
         if (index >= 0) {
-            cartItems[index] = cartItems[index].copy(quantity = cartItems[index].quantity + 1)
+            cartItems[index] = cartItems[index].copy(quantity = cartItems[index].quantity + quantity)
         } else {
-            cartItems.add(CartItem(book, 1))
+            cartItems.add(CartItem(book, quantity))
         }
     }
 

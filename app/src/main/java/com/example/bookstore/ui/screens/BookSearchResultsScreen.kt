@@ -53,12 +53,12 @@ fun BookSearchResultsScreen(
     initialQuery: String,
     onBackClick: () -> Unit,
     onBookClick: (String) -> Unit,
+    cartViewModel: CartViewModel,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var searchQuery by remember { mutableStateOf(initialQuery) }
-    val cartViewModel: CartViewModel = hiltViewModel()
     LaunchedEffect(initialQuery) {
         viewModel.searchBooks(initialQuery)
     }

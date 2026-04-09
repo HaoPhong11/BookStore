@@ -17,11 +17,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import android.content.Intent
+import android.net.Uri
 import com.example.bookstore.utils.toVnd
 import com.example.bookstore.viewmodel.AccountViewModel
 import com.example.bookstore.viewmodel.CartViewModel
@@ -74,6 +77,7 @@ fun CheckoutScreen(
             isPrefilled = true
         }
     }
+
     // Dialog thành công + ghi ngược thông tin giao hàng về profile
     if (checkoutViewModel.orderSuccess) {
         // Lưu thông tin đã dùng khi đặt hàng về profile để lần sau pre-fill sẵn
@@ -93,12 +97,55 @@ fun CheckoutScreen(
                 TextButton(onClick = {
                     checkoutViewModel.resetState()
                     cartViewModel.clearCart()
-                    navController.navigate("home") { popUpTo("home") { inclusive = true } }
-                }) { Text("Về trang chủ") }
+                    // Điều hướng đến màn hình đơn hàng, tab "Đang xử lý" (index 2)
+                    navController.navigate("order_history?success=true") {
+                        popUpTo("home") { inclusive = false }
+                    }
+                }) { Text("Xem đơn hàng của tôi") }
             },
             title = { Text("Đặt hàng thành công 🎉") },
-            text  = { Text("Đơn hàng của bạn đã được ghi nhận. Cảm ơn bạn đã mua hàng!") }
+            text  = { Text("Đơn hàng COD của bạn đã được ghi nhận. Cảm ơn bạn đã mua hàng!") }
         )
+    }
+
+    // Mở MoMo khi pendingPayUrl được set
+    val context = LocalContext.current
+    val payUrl    = checkoutViewModel.pendingPayUrl
+    val deeplink  = checkoutViewModel.pendingDeeplink
+    LaunchedEffect(payUrl) {
+        if (payUrl != null) {
+            // Lưu thông tin giao hàng về profile trước khi rời màn hình
+            accountViewModel.applyShippingInfo(
+                name     = receiverName,
+                phone    = receiverPhone,
+                email    = receiverEmail,
+                province = province,
+                district = district,
+                address  = detailedAddress
+            )
+            cartViewModel.clearCart()
+
+            // Thử mở app MoMo qua deeplink, fallback sang browser
+            val opened = if (!deeplink.isNullOrBlank()) {
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(deeplink))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    true
+                } catch (_: Exception) { false }
+            } else false
+
+            if (!opened) {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(payUrl))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+
+            checkoutViewModel.resetState()
+            // Chuyển về đơn hàng, tab "Đang xử lý" (index 2)
+            // ON_RESUME sẽ tự reload danh sách, tab sẽ ở PROCESSING khi MoMo thanh toán thành công
+            navController.navigate("order_history?success=true") {
+                popUpTo("home") { inclusive = false }
+            }
+        }
     }
 
     Scaffold(
@@ -193,8 +240,7 @@ fun CheckoutScreen(
                 data class PaymentMethod(val value: String, val title: String, val subtitle: String, val icon: ImageVector)
                 val methods = listOf(
                     PaymentMethod("COD",  "Thanh toán khi nhận hàng (COD)", "Thanh toán bằng tiền mặt khi nhận hàng", Icons.Outlined.LocalAtm),
-                    PaymentMethod("BANK", "Chuyển khoản ngân hàng", "Thực hiện thanh toán vào tài khoản ngân hàng của chúng tôi", Icons.Outlined.AccountBalance),
-                    PaymentMethod("MOMO", "Ví MoMo", "Thanh toán qua ứng dụng MoMo", Icons.Outlined.PhoneIphone)
+                    PaymentMethod("MOMO", "Ví MoMo", "Thanh toán qua ứng dụng MoMo (chuyển hướng đến MoMo)", Icons.Outlined.PhoneIphone)
                 )
                 methods.forEach { method ->
                     PaymentMethodItem(
@@ -241,7 +287,11 @@ fun CheckoutScreen(
                 } else {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White)
                     Spacer(Modifier.width(8.dp))
-                    Text("Đặt hàng", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(
+                        if (checkoutViewModel.paymentMethod == "MOMO") "Đặt hàng & Thanh toán MoMo"
+                        else "Đặt hàng",
+                        color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp
+                    )
                 }
             }
             Spacer(Modifier.height(8.dp))

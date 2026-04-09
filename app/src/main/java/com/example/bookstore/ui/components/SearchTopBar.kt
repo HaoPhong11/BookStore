@@ -3,7 +3,6 @@ package com.example.bookstore.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -46,8 +45,8 @@ fun SearchTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0xFF3B5998)) // Màu xanh Header
-            .padding(horizontal = 8.dp, vertical = 12.dp)
-            .statusBarsPadding(),
+            .statusBarsPadding()
+            .padding(horizontal = 8.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onBackClick) {
@@ -79,9 +78,8 @@ fun SearchTopBar(
             ),
             modifier = Modifier
                 .weight(1f)
-                .height(50.dp)
                 .padding(end = 8.dp),
-            shape = RoundedCornerShape(25.dp), // Bo tròn 2 đầu
+            shape = RoundedCornerShape(50), // pill shape, tự thích ứng theo chiều cao tự nhiên (56dp M3)
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color(0xFF5C78B7), // Xanh nhạt hơn nền
                 unfocusedContainerColor = Color(0xFF5C78B7),

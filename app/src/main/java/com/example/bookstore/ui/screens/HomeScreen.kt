@@ -28,13 +28,13 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
+    cartViewModel: CartViewModel,
     onNavigateToCategory: () -> Unit,
     onBookClick: (String) -> Unit,
     onSearchClick: () -> Unit)
 {
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val cartViewModel: CartViewModel = hiltViewModel()
     val books = viewModel.books
     val isLoading = viewModel.isLoading
     android.util.Log.d("TechLead", "HomeScreen Recomposition: isLoading=$isLoading, books size=${books.size}")

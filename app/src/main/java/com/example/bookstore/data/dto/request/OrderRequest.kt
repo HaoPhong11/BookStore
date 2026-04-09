@@ -23,5 +23,5 @@ data class OrderItemRequest(
     val quantity: Int,
     val price: Double,
     val bookTitle: String?,
-    val imglUrl: String?
+    val imgUrl: String?          // khớp với backend OrderDetailRequest.imgUrl
 )

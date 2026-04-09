@@ -13,18 +13,18 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.example.bookstore.data.model.Book
 import com.example.bookstore.ui.components.BookBasicInfo
 import com.example.bookstore.ui.components.BookDescription
 import com.example.bookstore.ui.components.BookImageHeader
@@ -32,8 +32,10 @@ import com.example.bookstore.ui.components.BookReviewsSection
 import com.example.bookstore.ui.components.BookSpecifications
 import com.example.bookstore.ui.components.DetailTopBar
 import com.example.bookstore.ui.components.RelatedProductsSection
+import com.example.bookstore.utils.displayPrice
 import com.example.bookstore.viewmodel.BookDetailViewModel
-
+import com.example.bookstore.viewmodel.CartViewModel
+import kotlinx.coroutines.launch
 
 enum class BadgeType { None, Discount, New }
 data class MockReview(val name: String, val date: String, val rating: Int, val content: String)
@@ -47,12 +49,18 @@ fun BookDetailScreen(
     onAccountClick: () -> Unit,
     onCategoryClick: () -> Unit,
     onSearchSubmit: (String) -> Unit,
-    viewModel: BookDetailViewModel = hiltViewModel(),) {
-
+    cartViewModel: CartViewModel,
+    onNavigateToCheckout: () -> Unit = {},
+    viewModel: BookDetailViewModel = hiltViewModel(),
+) {
     val book = viewModel.book
     val isLoading = viewModel.isLoading
+    var quantity by remember { mutableStateOf(1) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             DetailTopBar(
                 onBackClick = onBackClick,
@@ -61,8 +69,35 @@ fun BookDetailScreen(
                 onAccountClick = onAccountClick,
                 onCategoryClick = onCategoryClick,
                 onSearchSubmit = onSearchSubmit
-            ) },
-        bottomBar = { DetailBottomBar() },
+            )
+        },
+        bottomBar = {
+            DetailBottomBar(
+                book = book,
+                quantity = quantity,
+                onDecrement = { if (quantity > 1) quantity-- },
+                onIncrement = { quantity++ },
+                onAddToCart = {
+                    book?.let {
+                        cartViewModel.addBook(it.copy(price = it.displayPrice()), quantity)
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "Đã thêm $quantity \"${it.title}\" vào giỏ hàng",
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                        quantity = 1
+                    }
+                },
+                onBuyNow = {
+                    book?.let {
+                        cartViewModel.addBook(it.copy(price = it.displayPrice()), quantity)
+                        quantity = 1
+                        onNavigateToCheckout()
+                    }
+                }
+            )
+        },
         containerColor = Color.White
     ) { innerPadding ->
         if (isLoading) {
@@ -94,7 +129,14 @@ fun BookDetailScreen(
 }
 
 @Composable
-fun DetailBottomBar() {
+fun DetailBottomBar(
+    book: Book?,
+    quantity: Int,
+    onDecrement: () -> Unit,
+    onIncrement: () -> Unit,
+    onAddToCart: () -> Unit,
+    onBuyNow: () -> Unit,
+) {
     // Dùng Surface để tạo bóng (elevation) đổ lên trên nội dung cuộn
     Surface(
         shadowElevation = 8.dp,
@@ -116,16 +158,33 @@ fun DetailBottomBar() {
                     .clip(RoundedCornerShape(4.dp))
                     .background(Color(0xFFEEEEEE))
             ) {
-                Text("-", modifier = Modifier.clickable {}.padding(horizontal = 12.dp, vertical = 8.dp), fontWeight = FontWeight.Bold)
-                Text("1", modifier = Modifier.padding(horizontal = 8.dp), fontWeight = FontWeight.Bold)
-                Text("+", modifier = Modifier.clickable {}.padding(horizontal = 12.dp, vertical = 8.dp), fontWeight = FontWeight.Bold)
+                Text(
+                    "−",
+                    modifier = Modifier
+                        .clickable(enabled = book != null) { onDecrement() }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "$quantity",
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "+",
+                    modifier = Modifier
+                        .clickable(enabled = book != null) { onIncrement() }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
             // Nút Thêm vào giỏ
             OutlinedButton(
-                onClick = { /* TODO */ },
+                onClick = onAddToCart,
+                enabled = book != null,
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(4.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF3B5998))
@@ -139,7 +198,8 @@ fun DetailBottomBar() {
 
             // Nút Mua ngay
             Button(
-                onClick = { /* TODO */ },
+                onClick = onBuyNow,
+                enabled = book != null,
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(4.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B5998))

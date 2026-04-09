@@ -108,6 +108,15 @@ app/src/main/java/com/example/bookstore/
 | `CheckoutScreen.kt` | Form không pre-fill khi đi Cart → Checkout (không qua AccountScreen, profile chưa load) | ✅ Fixed — thêm `LaunchedEffect(Unit) { accountViewModel.loadProfile() }`; dùng `isPrefilled` flag để chỉ fill 1 lần khi profile load xong |
 | `LoginScreen.kt` / `RegisterScreen.kt` | Nút Facebook/Google chỉ hiện thông báo "đang phát triển" | ✅ Fixed — Tích hợp chức năng đăng nhập/đăng ký giả lập (mock) qua `AuthViewModel` |
 | `RegisterScreen.kt` | Không xem được điều khoản dịch vụ và chính sách bảo mật | ✅ Fixed — Thêm `AlertDialog` hiển thị nội dung chi tiết khi nhấn vào các liên kết tương ứng |
+| `OrderHistoryScreen.kt` | Crash `NullPointerException` khi mở "Đơn hàng của tôi" — backend trả field `orderItems` nhưng DTO expect `items` → Gson map thành null → `sumOf { it.quantity }` crash | ✅ Fixed — thêm `@JsonProperty("items")` + `FetchType.EAGER` ở backend; default `emptyList()` ở frontend |
+| `Order.java` (backend) | `createdAt` serialize là số timestamp (long) thay vì ISO string → frontend parse sai ngày | ✅ Fixed — `@JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss")` |
+| `CheckoutScreen.kt` | Sau đặt hàng MOMO không mở app thanh toán, chỉ hiện dialog rồi về home | ✅ Fixed — tích hợp luồng MoMo: tạo đơn → mở deeplink/browser → về OrderHistory |
+| `MainScreen.kt` + `AppBottomNavigation.kt` | Blue extra space xuất hiện phía trên TopAppBar do double-consume insets | ✅ Fixed — `contentWindowInsets = WindowInsets(0)` + `calculateBottomPadding()` |
+| `BookDetailScreen.kt` | Nút "Thêm vào giỏ" và "Mua ngay" không làm gì (`/* TODO */`) | ✅ Fixed — kết nối `cartViewModel`, thêm `quantity` state, `SnackbarHostState` |
+| `AppBottomNavigation.kt` | Search → BookDetail → Cart → tap Category bị stuck trên Cart | ✅ Fixed — Nested Navigation Graphs: mỗi tab có back stack riêng |
+| `AppBottomNavigation.kt` | Home → BookDetail → Cart → tap Home bị stuck trên Cart | ✅ Fixed — Nested Graphs + `saveState`/`restoreState` hoạt động đúng |
+| `AppBottomNavigation.kt` | Tab Category/Account không highlight khi ở màn hình con | ✅ Fixed — `NavDestination.hierarchy` tự động detect graph |
+| `SearchTopBar.kt` + `DetailTopBar.kt` | Placeholder text "Tìm kiếm sách, tác giả" bị cắt ở đáy | ✅ Fixed — `statusBarsPadding()` trước `padding()`, xóa `height(50.dp)` cứng |
 
 ---
 
@@ -123,6 +132,10 @@ app/src/main/java/com/example/bookstore/
 | `ui/theme/Theme.kt` | `BookStoreTheme {}` bọc `MaterialTheme` | §4.1.3 Theming |
 | `viewmodel/CategoryViewModel.kt` | `@HiltViewModel` + `StateFlow<UiState<List<Book>>>` + Coroutines | §3.3.2 + §3.3.4 + §Ch.6 |
 | `ui/screens/CategoryDetailScreen.kt` | Figma 5: `AnimatedVisibility`, `LazyVerticalGrid`, `when(uiState)`, `BookCard`, `@Preview` | §4.1.4 + §3.3.2 |
+| `data/dto/response/PaymentUrlResponse.kt` | DTO nhận từ backend: `{ orderId, payUrl, deeplink, paymentMethod }` | — |
+| `service/MoMoService.java` (backend) | Gọi MoMo sandbox API, ký HMAC-SHA256, trả về payUrl + deeplink | — |
+| `controller/PaymentController.java` (backend) | `GET /api/payment/momo-return` cập nhật order status → redirect deep link; `POST /api/payment/momo-ipn` | — |
+| `dto/PaymentUrlResponse.java` (backend) | DTO response cho tạo đơn hàng | — |
 
 ---
 
@@ -140,6 +153,9 @@ app/src/main/java/com/example/bookstore/
 | `AccountScreen.kt` | `AnimatedVisibility` + `fadeIn` + `slideInVertically` cho order status |
 | `CategoryDetailScreen.kt` | `displayPrice()` ext fn; Sort `DropdownMenu` 4 option; Filter chips khoảng giá; `BookCard` luôn hiện giá+badge; Snackbar khi thêm giỏ; dùng `AppColors`; **fix card height** — `Card(height=310.dp)` + `fillMaxSize()` + `weight(1f)` + số lượt đánh giá |
 | `AppBottomNavigation.kt` | Tab "Danh mục" highlight khi đang ở `category_detail/{index}` |
+| `AppBottomNavigation.kt` | **Refactor sang Nested Graphs**: `selected` dùng `hierarchy` (tự động); navigate đến `graphRoute` với `saveState`/`restoreState`; không còn check route thủ công |
+| `BottomNavItem.kt` | Thêm `graphRoute` property để tách route màn hình và route graph |
+| `MainScreen.kt` | **Refactor sang Nested Navigation Graphs**: chia 4 sub-graph (`home_graph`, `category_graph`, `cart_graph`, `account_graph`); `book_detail` nằm trong `home_graph`; `login`/`register` là shared screens ngoài graph |
 | `OrderHistoryScreen.kt` | Xóa `toVndOH()` → dùng `toVnd()`; `Divider` → `HorizontalDivider`; fix deprecated `ArrowBack` |
 | `CategoryDetailScreen.kt` | `BookCard` dùng `Column(fillMaxHeight)` + `weight(1f)` + `SpaceBetween` để đồng đều chiều cao |
 | 9 screen files | Xóa private color constant, dùng `AppColors.PrimaryBlue` / `AppColors.PriceColor` / `AppColors.StarYellow` |
@@ -150,15 +166,110 @@ app/src/main/java/com/example/bookstore/
 | `AccountViewModel.kt` | Thêm `editProvince`, `editDistrict`; cập nhật `loadProfile()`/`saveProfile()`; thêm `applyShippingInfo()` |
 | `ProfileScreen.kt` | Thêm 2 trường `Tỉnh/Thành phố`, `Quận/Huyện`; đổi "Địa chỉ" → "Địa chỉ chi tiết"; nhận `viewModel` từ ngoài |
 | `MainScreen.kt` | Hoist `AccountViewModel` tại `MainScreen`; truyền vào cả `ProfileScreen`, `CheckoutScreen`, `AccountScreen`, `LoginScreen` |
+| `OrderHistoryScreen.kt` | Thêm `initialTab` param; PENDING card clickable → dialog Hủy/Thanh toán MoMo; handle deep link từ MoMo return |
+| `CheckoutScreen.kt` | Tích hợp MOMO: sau tạo đơn mở `deeplink`/`payUrl` bằng `Intent`; navigate về `order_history` thay vì dialog |
+| `AccountViewModel.kt` | Thêm `cancelOrder()`, `getRepayUrl()`, `repayResult`, `orderActionLoading`, `cancelSuccess` cho MOMO flow |
+| `CheckoutViewModel.kt` | Expose `pendingPayUrl`, `pendingDeeplink`, `createdOrderId`; COD → `orderSuccess`, MOMO → URL state |
+| `data/api/ApiService.kt` | `createOrder` trả `PaymentUrlResponse`; thêm `cancelOrder (PATCH)`, `repayOrder (GET)` |
+| `data/repo/OrderRepository.kt` | `createOrder` trả `Result<PaymentUrlResponse>`; thêm `cancelOrder`, `getRepayUrl` |
+| `AndroidManifest.xml` | `launchMode=singleTask`; thêm deep link intent-filter cho scheme `bookstore`, host `payment` |
+| `entity/Order.java` (backend) | `@JsonProperty("items")` trên `orderItems`; `FetchType.EAGER`; `@JsonFormat` ISO date |
+| `controller/OrderController.java` (backend) | POST trả `PaymentUrlResponse`; thêm `PATCH /{id}/cancel`; `GET /{id}/repay` |
+| `security/SecurityConfig.java` (backend) | Thêm `PATCH` vào CORS allowed methods |
 
 ---
 
-## ⚠️ Lưu ý kỹ thuật — AppBottomNavigation
+## 🗺️ Kiến trúc Navigation — Nested Navigation Graphs
 
-### Vấn đề: Tab highlight khi ở màn hình con
+Ứng dụng sử dụng **Nested Navigation Graphs** (Jetpack Navigation Compose) — mỗi tab là một sub-graph độc lập với back stack riêng.
 
-Mặc định `selected = currentRoute == item.route` chỉ khớp **chính xác** route.  
-Khi navigate sang màn hình con (sub-screen), route thay đổi → tab bị **bỏ highlight**, user mất orientation.
+```
+NavHost(startDestination = "home_graph")
+├── navigation(route = "home_graph")         ← HOME TAB
+│   ├── composable("home")
+│   ├── composable("search_screen")
+│   ├── composable("search_results/{query}")
+│   └── composable("book_detail/{bookId}")
+│
+├── navigation(route = "category_graph")     ← CATEGORY TAB
+│   ├── composable("category")
+│   └── composable("category_detail/{index}")
+│
+├── navigation(route = "cart_graph")         ← CART TAB
+│   ├── composable("cart")
+│   └── composable("checkout")
+│
+├── navigation(route = "account_graph")      ← ACCOUNT TAB
+│   ├── composable("account")
+│   ├── composable("profile")
+│   ├── composable("settings")
+│   ├── composable("change_password")
+│   ├── composable("order_history")
+│   └── composable("contact")
+│
+├── composable("login/{returnRoute}")        ← SHARED (ngoài mọi graph)
+└── composable("register")                  ← SHARED (ngoài mọi graph)
+```
+
+### Tại sao dùng Nested Graphs?
+
+| Vấn đề với Flat NavHost | Giải pháp với Nested Graphs |
+|---|---|
+| `saveState`/`restoreState` bị conflict khi back stack có non-tab routes (`search_screen`, `book_detail`, v.v.) | Mỗi graph có back stack riêng → `saveState`/`restoreState` hoạt động chính xác cho từng tab |
+| Phải check thủ công `startsWith("category_detail/")` để highlight tab | `NavDestination.hierarchy` tự động detect tab dựa vào graph chứa màn hình hiện tại |
+| `book_detail` và `search_screen` lẫn vào state của tab Home | `home_graph` chứa đúng các màn hình home-context — state lưu/restore rõ ràng |
+
+### `BottomNavItem` — `route` vs `graphRoute`
+
+```kotlin
+sealed class BottomNavItem(
+    val route: String,      // Route màn hình (dùng cho startDestination của graph)
+    val graphRoute: String, // Route của graph (dùng để navigate khi tap tab)
+    val title: String,
+    val icon: ImageVector
+) {
+    object Home     : BottomNavItem("home",     "home_graph",     "Trang chủ", Icons.Outlined.Home)
+    object Category : BottomNavItem("category", "category_graph", "Danh mục",  Icons.Outlined.GridView)
+    object Cart     : BottomNavItem("cart",     "cart_graph",     "Giỏ hàng",  Icons.Outlined.ShoppingCart)
+    object Account  : BottomNavItem("account",  "account_graph",  "Tài khoản", Icons.Outlined.Person)
+}
+```
+
+### `AppBottomNavigation` — Hai cơ chế chính
+
+**1. `selected` — dùng `hierarchy` thay vì so sánh route trực tiếp:**
+```kotlin
+// Trước (flat): chỉ highlight khi route khớp chính xác
+selected = currentRoute == item.route
+
+// Sau (nested graphs): highlight khi đang ở BẤT KỲ màn hình nào trong graph đó
+selected = currentDestination?.hierarchy?.any { it.route == item.graphRoute } == true
+```
+
+**Lợi ích**: Tự động highlight đúng tab khi ở `category_detail`, `profile`, `settings`, v.v. — không cần `startsWith()` thủ công.
+
+**2. `onClick` — `saveState`/`restoreState` hoạt động đúng:**
+```kotlin
+navController.navigate(item.graphRoute) {
+    popUpTo(navController.graph.findStartDestination().id) {
+        saveState = true  // Lưu back stack của tab đang rời
+    }
+    launchSingleTop = true
+    restoreState    = true  // Restore back stack khi quay lại tab này
+}
+```
+
+**Lợi ích**: Mỗi tab nhớ vị trí cuối cùng — ví dụ Category tab giữ nguyên `category_detail` khi user switch sang tab khác rồi quay lại.
+
+### Luồng navigation giải quyết được
+
+| Flow | Trước | Sau |
+|---|---|---|
+| Search → BookDetail → Cart → tap Category | ❌ Stuck trên Cart | ✅ Vào Category bình thường |
+| Home → BookDetail → Cart → tap Home | ❌ Stuck trên Cart | ✅ Về Home bình thường |
+| Ở `category_detail` → tab Category highlight? | ❌ Không highlight | ✅ Tự động highlight |
+| Ở `profile`/`settings` → tab Account highlight? | ❌ Không highlight | ✅ Tự động highlight |
+| Switch qua lại giữa Category ↔ Account | ❌ Mất trạng thái | ✅ Giữ nguyên scroll/state |
 
 ## ✅ Các cải tiến & Fix lỗi quan trọng
 
@@ -198,28 +309,128 @@ Khi navigate sang màn hình con (sub-screen), route thay đổi → tab bị **
 | ViewModel hoisting (§4.1.3) | Toàn ứng dụng | `MainScreen.kt` quản lý `AccountViewModel` |
 | `@Preview` (§4.1.3) | UI Components | `SocialLoginButton.kt`, `CartScreen.kt` |
 | `HorizontalDivider` (M3) | Bố cục | Thay thế `Divider` cũ đã deprecated |
+| **Nested Navigation Graphs** | Navigation | `MainScreen.kt` — 4 sub-graphs (home/category/cart/account) |
+| **`NavDestination.hierarchy`** | Navigation | `AppBottomNavigation.kt` — auto-highlight tab theo graph |
+| **`saveState` + `restoreState`** | Navigation | `AppBottomNavigation.kt` — mỗi tab giữ state riêng khi switch |
+| **`BottomNavItem.graphRoute`** | Navigation | `BottomNavItem.kt` — tách route màn hình và route graph |
 ---
 
-## 📱 Màn hình
+## 📱 Màn hình & Navigation Graph
+
+### Tab Graphs (có Bottom Navigation)
+
+| Graph | Route | Màn hình | Mô tả |
+|-------|-------|----------|-------|
+| `home_graph` | `home` | HomeScreen | Trang chủ |
+| `home_graph` | `search_screen` | SearchScreen | Tìm kiếm |
+| `home_graph` | `search_results/{query}` | BookSearchResultsScreen | Kết quả tìm kiếm |
+| `home_graph` | `book_detail/{bookId}` | BookDetailScreen | Chi tiết sách |
+| `category_graph` | `category` | CategoryScreen | Lưới 12 danh mục (Figma 4) |
+| `category_graph` | `category_detail/{index}` | CategoryDetailScreen | Danh sách sách theo thể loại (Figma 5) |
+| `cart_graph` | `cart` | CartScreen | Giỏ hàng |
+| `cart_graph` | `checkout` | CheckoutScreen | Thanh toán (7 form fields + phương thức thanh toán) |
+| `account_graph` | `account` | AccountScreen | Tài khoản |
+| `account_graph` | `profile` | ProfileScreen | Thông tin tài khoản — 6 trường; liên thông với CheckoutScreen |
+| `account_graph` | `order_history` | OrderHistoryScreen | Lịch sử đơn hàng (5 tab) |
+| `account_graph` | `order_history?success={bool}` | OrderHistoryScreen | Deep link từ MoMo return |
+| `account_graph` | `change_password` | ChangePasswordScreen | Đổi mật khẩu |
+| `account_graph` | `contact` | ContactScreen | Liên hệ |
+
+### Shared Screens (ngoài mọi graph — không thuộc tab nào)
 
 | Route | Màn hình | Mô tả |
 |-------|----------|-------|
-| `home` | HomeScreen | Trang chủ |
-| `category` | CategoryScreen | Lưới 12 danh mục (Figma 4) |
-| `category_detail/{index}` | CategoryDetailScreen | Danh sách sách theo thể loại (Figma 5) |
-| `cart` | CartScreen | Giỏ hàng |
-| `checkout` | CheckoutScreen | Thanh toán (7 form fields + phương thức thanh toán) |
-| `account` | AccountScreen | Tài khoản (auth guard) |
 | `login/{returnRoute}` | LoginScreen | Đăng nhập |
 | `register` | RegisterScreen | Đăng ký |
-| `profile` | ProfileScreen | Thông tin tài khoản — 6 trường (fullName, email, phone, province, district, detailedAddress); liên thông với CheckoutScreen |
-| `order_history` | OrderHistoryScreen | Lịch sử đơn hàng |
-| `change_password` | ChangePasswordScreen | Đổi mật khẩu |
-| `contact` | ContactScreen | Liên hệ — form gửi tin nhắn, thông tin liên hệ, social links, map, hệ thống cửa hàng |
 
 ---
 
-## ⚙️ Lưu ý về Môi trường (RetrofitClient.kt)
+## 💳 Tích hợp Thanh toán MoMo (Sandbox)
+
+### Luồng hoạt động
+
+```
+User bấm "Đặt hàng & Thanh toán MoMo"
+    ↓
+Frontend → POST /api/orders (paymentMethod=MOMO)
+    ↓
+Backend tạo order (status=PENDING) → gọi MoMo API → nhận payUrl + deeplink
+    ↓
+Backend trả PaymentUrlResponse { orderId, payUrl, deeplink }
+    ↓
+Frontend thử mở app MoMo qua deeplink (momo://...)
+    └─ Nếu MoMo chưa cài → fallback mở browser (payUrl)
+    ↓
+User thanh toán trên MoMo
+    ↓
+MoMo redirect browser → http://{server_ip}:8081/api/payment/momo-return?resultCode=0&...
+    ↓
+Backend verify → cập nhật order PENDING → PROCESSING
+    ↓
+Backend redirect → bookstore://payment/result?success=true&orderId=123
+    ↓
+Android nhận deep link → mở app → OrderHistoryScreen tab "Đang xử lý"
+```
+
+### Trường hợp không thanh toán (PENDING)
+
+- Đơn hàng vẫn ở tab **"Chờ xác nhận"**
+- Bấm vào card → dialog 2 lựa chọn:
+  - **Hủy đơn** → gọi `PATCH /api/orders/{id}/cancel` → status = `CANCELLED`
+  - **Thanh toán MoMo** → gọi `GET /api/orders/{id}/repay` → lấy payUrl mới → mở lại MoMo
+
+### Cấu hình MoMo
+
+Credentials sandbox đã được cấu hình trong `bookstore-backend/src/main/resources/application.properties`:
+
+```properties
+momo.partner-code=MOMOBKUN20180529
+momo.access-key=klm05TvNBzhg7h7j
+momo.secret-key=at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa
+momo.endpoint=https://test-payment.momo.vn/v2/gateway/api/create
+
+# ⚠ Đổi thành IP máy tính trong mạng WiFi (cùng mạng với điện thoại)
+momo.redirect-base-url=http://192.168.1.x:8081
+```
+
+> **Lý do dùng `redirectUrl` thay vì `ipnUrl`:**  
+> `ipnUrl` yêu cầu server phải có IP public (MoMo server gọi vào). Thay vào đó, dùng `redirectUrl` — browser trên điện thoại (cùng mạng WiFi) tự redirect về server local, server update status và redirect sang deep link. Không cần ngrok.
+
+### Test với MoMo Sandbox
+
+| Thông tin | Giá trị |
+|-----------|---------|
+| Số điện thoại | `0000000000` |
+| OTP | `000000` |
+| PIN | `000000` |
+| resultCode thành công | `0` |
+
+### Files liên quan
+
+**Backend:**
+| File | Vai trò |
+|------|---------|
+| `service/MoMoService.java` | Gọi MoMo API, ký HMAC-SHA256, trả về `payUrl` + `deeplink` |
+| `controller/PaymentController.java` | Nhận redirect từ MoMo browser, update order status, redirect sang deep link |
+| `controller/OrderController.java` | POST tạo đơn → `PaymentUrlResponse`; PATCH cancel; GET repay |
+| `dto/PaymentUrlResponse.java` | DTO: `{ orderId, payUrl, deeplink, paymentMethod }` |
+
+**Frontend:**
+| File | Vai trò |
+|------|---------|
+| `data/dto/response/PaymentUrlResponse.kt` | DTO nhận từ backend |
+| `data/api/ApiService.kt` | Endpoint `createOrder`, `cancelOrder`, `repayOrder` |
+| `data/repo/OrderRepository.kt` | `createOrder`, `cancelOrder`, `getRepayUrl` |
+| `viewmodel/CheckoutViewModel.kt` | Expose `pendingPayUrl`, `pendingDeeplink` sau khi tạo đơn MOMO |
+| `viewmodel/AccountViewModel.kt` | `cancelOrder()`, `getRepayUrl()`, `repayResult` |
+| `ui/screens/CheckoutScreen.kt` | COD → dialog; MOMO → mở Intent → navigate order_history |
+| `ui/screens/OrderHistoryScreen.kt` | PENDING card clickable, dialog Hủy/Thanh toán lại |
+| `AndroidManifest.xml` | Deep link: `bookstore://payment/result` → `MainActivity (singleTask)` |
+| `MainScreen.kt` | Route `order_history?success={bool}` với `navDeepLink` |
+
+---
+
+
 
 ```kotlin
 // true  = chạy backend local (IntelliJ)
@@ -270,10 +481,13 @@ API Key đã được cấu hình trong **`AppModule.kt`** và **`GoogleBooksCli
 
 ## 🚀 Hướng dẫn chạy
 
-1. Clone dự án và mở bằng **Android Studio**.
-2. Đảm bảo backend đang chạy (IntelliJ hoặc Railway).
-3. Chỉnh `USE_LOCAL` trong `RetrofitClient.kt` theo môi trường.
-4. Chạy app trên Emulator hoặc điện thoại thật (minSdk 26 / Android 8.0+).
+1. Clone dự án và mở bằng **Android Studio** (frontend) + **IntelliJ IDEA Community** (backend).
+2. Đảm bảo MySQL đang chạy (cổng 3307).
+3. Chạy backend từ IntelliJ — server sẽ khởi động tại `http://localhost:8081`.
+4. Chỉnh `USE_LOCAL` trong `RetrofitClient.kt` và IP trong `LOCAL_URL` theo môi trường.
+5. **Nếu dùng thanh toán MoMo**: Cập nhật `momo.redirect-base-url` trong `application.properties` thành IP LAN của máy tính (kết quả `ipconfig` → IPv4).
+6. Chạy app trên Emulator hoặc điện thoại thật (minSdk 26 / Android 8.0+).
+7. **Test MoMo sandbox**: SĐT `0000000000` · OTP `000000` · PIN `000000`.
 
 ---
 

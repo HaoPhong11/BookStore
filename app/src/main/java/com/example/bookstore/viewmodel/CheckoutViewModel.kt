@@ -15,27 +15,22 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * CheckoutViewModel — chỉ giữ state liên quan đến nghiệp vụ đặt hàng.
- *
- * Các trường form giao hàng (receiverName, phone, ...) được chuyển sang
- * rememberSaveable trong CheckoutScreen để:
- *  1. Minh họa rememberSaveable — PDF §4.1.3 (state tồn tại qua config change)
- *  2. Tách biệt UI state (form) và Business state (order result)
- *  3. Form data không cần persist qua process death ở đây
- */
 @HiltViewModel
 class CheckoutViewModel @Inject constructor(
     private val orderRepository: OrderRepository,
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
-    // Phương thức thanh toán — giữ trong VM vì liên quan trực tiếp đến đặt hàng
     var paymentMethod by mutableStateOf("COD")
 
     var isLoading    by mutableStateOf(false)
-    var orderSuccess by mutableStateOf(false)
+    var orderSuccess by mutableStateOf(false)   // COD: đặt hàng thành công
     var errorMessage by mutableStateOf<String?>(null)
+
+    // MOMO: sau khi tạo order, chứa URL để mở thanh toán
+    var pendingPayUrl  by mutableStateOf<String?>(null)
+    var pendingDeeplink by mutableStateOf<String?>(null)
+    var createdOrderId  by mutableStateOf<Long?>(null)
 
     /**
      * Đặt hàng — nhận toàn bộ thông tin giao hàng qua tham số.
@@ -56,7 +51,7 @@ class CheckoutViewModel @Inject constructor(
         note:            String
     ) {
         if (receiverName.isBlank() || receiverPhone.isBlank() ||
-            province.isBlank()     || district.isBlank()      || detailedAddress.isBlank()
+            province.isBlank() || district.isBlank() || detailedAddress.isBlank()
         ) {
             errorMessage = "Vui lòng điền đầy đủ thông tin giao hàng"
             return
@@ -88,20 +83,33 @@ class CheckoutViewModel @Inject constructor(
                         quantity  = item.quantity,
                         price     = item.book.price,
                         bookTitle = item.book.title,
-                        imglUrl   = item.book.imageUrl
+                        imgUrl    = null   // không gửi URL dài (có thể > VARCHAR 255), bookId đã đủ để hiển thị ảnh
                     )
                 }
             )
 
             val result = orderRepository.createOrder(request)
             isLoading = false
-            result.onSuccess { orderSuccess = true }
+            result.onSuccess { paymentResponse ->
+                createdOrderId = paymentResponse.orderId
+                if (paymentMethod == "MOMO") {
+                    // Expose URLs cho CheckoutScreen mở browser/app
+                    pendingPayUrl   = paymentResponse.payUrl
+                    pendingDeeplink = paymentResponse.deeplink
+                } else {
+                    // COD — hiện dialog thành công
+                    orderSuccess = true
+                }
+            }
             result.onFailure { errorMessage = it.message }
         }
     }
 
     fun resetState() {
-        orderSuccess = false
-        errorMessage = null
+        orderSuccess    = false
+        errorMessage    = null
+        pendingPayUrl   = null
+        pendingDeeplink = null
+        createdOrderId  = null
     }
 }

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.bookstore.data.dto.request.ChangePasswordRequest
 import com.example.bookstore.data.dto.request.UserRequest
 import com.example.bookstore.data.dto.response.OrderResponse
+import com.example.bookstore.data.dto.response.PaymentUrlResponse
 import com.example.bookstore.data.dto.response.UserResponse
 import com.example.bookstore.data.local.TokenManager
 import com.example.bookstore.data.repo.OrderRepository
@@ -48,6 +49,13 @@ class AccountViewModel @Inject constructor(
         private set
     var orderLoading by mutableStateOf(false)
         private set
+
+    // --- Order actions (cancel / repay) ---
+    var orderActionLoading by mutableStateOf(false)
+        private set
+    var orderActionError   by mutableStateOf<String?>(null)
+    var repayResult        by mutableStateOf<PaymentUrlResponse?>(null)
+    var cancelSuccess      by mutableStateOf(false)
 
     // --- Change password ---
     var oldPassword      by mutableStateOf("")
@@ -98,6 +106,39 @@ class AccountViewModel @Inject constructor(
             orderRepository.getOrderHistory(userId).onSuccess { orderHistory = it }
             orderLoading = false
         }
+    }
+
+    /** Hủy đơn PENDING. Sau khi hủy, reload lại danh sách. */
+    fun cancelOrder(orderId: Long) {
+        viewModelScope.launch {
+            orderActionLoading = true
+            orderActionError   = null
+            orderRepository.cancelOrder(orderId)
+                .onSuccess {
+                    cancelSuccess = true
+                    loadOrderHistory()
+                }
+                .onFailure { orderActionError = it.message }
+            orderActionLoading = false
+        }
+    }
+
+    /** Lấy lại MoMo payUrl cho đơn PENDING để thanh toán lại. */
+    fun getRepayUrl(orderId: Long) {
+        viewModelScope.launch {
+            orderActionLoading = true
+            orderActionError   = null
+            orderRepository.getRepayUrl(orderId)
+                .onSuccess  { repayResult = it }
+                .onFailure  { orderActionError = it.message }
+            orderActionLoading = false
+        }
+    }
+
+    fun resetOrderAction() {
+        orderActionError   = null
+        repayResult        = null
+        cancelSuccess      = false
     }
 
     fun changePassword() {

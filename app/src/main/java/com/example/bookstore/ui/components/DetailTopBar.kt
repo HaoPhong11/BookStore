@@ -70,8 +70,8 @@ fun DetailTopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFF3B5998))
-                .padding(horizontal = 8.dp, vertical = 12.dp)
-                .statusBarsPadding(),
+                .statusBarsPadding()
+                .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Nút Back này để tắt chế độ Search
@@ -85,7 +85,6 @@ fun DetailTopBar(
                 placeholder = { Text("Tìm kiếm sách, tác giả...", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp) },
                 modifier = Modifier
                     .weight(1f)
-                    .height(50.dp)
                     .padding(end = 8.dp)
                     .focusRequester(focusRequester),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -104,7 +103,7 @@ fun DetailTopBar(
                         }
                     }
                 },
-                shape = RoundedCornerShape(25.dp),
+                shape = RoundedCornerShape(50),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color(0xFF5C78B7),
                     unfocusedContainerColor = Color(0xFF5C78B7),
