@@ -226,12 +226,45 @@ Khi navigate sang màn hình con (sub-screen), route thay đổi → tab bị **
 // false = chạy backend Railway (production)
 private const val USE_LOCAL = true
 
-private const val LOCAL_URL      = "http://192.168.1.5:8081/"
+private const val LOCAL_URL      = "http://192.168.1.4:8081/"
 private const val PRODUCTION_URL = "https://bookstore-backend-production-4b7e.up.railway.app/"
 ```
 
 *   **Emulator**: Dùng IP `10.0.2.2`.
 *   **Thiết bị thật**: Dùng IP nội bộ của máy tính (ví dụ `192.168.1.x`) và cùng mạng WiFi.
+
+> ⚠️ **IP LAN có thể thay đổi** khi đổi mạng WiFi hoặc khởi động lại router. Khi bị lỗi kết nối, kiểm tra lại IP máy tính bằng lệnh `ipconfig` (Windows) và cập nhật đồng thời **2 chỗ**:
+> 1. `LOCAL_URL` trong `RetrofitClient.kt`
+> 2. Thẻ `<domain>` tương ứng trong `app/src/main/res/xml/network_security_config.xml`
+
+### network_security_config.xml — Whitelist IP cho HTTP cleartext
+
+Android 9+ chặn HTTP (non-HTTPS) theo mặc định. Mỗi IP local cần được khai báo tường minh:
+
+```xml
+<!-- Emulator -->
+<domain-config cleartextTrafficPermitted="true">
+    <domain includeSubdomains="false">10.0.2.2</domain>
+</domain-config>
+
+<!-- Thiết bị thật — IP LAN hiện tại của máy tính -->
+<domain-config cleartextTrafficPermitted="true">
+    <domain includeSubdomains="false">192.168.1.4</domain>
+</domain-config>
+```
+
+> Nếu gặp lỗi `CLEARTEXT communication to x.x.x.x not permitted by network security policy`, nghĩa là IP máy tính đã thay đổi và chưa được thêm vào file trên.
+
+---
+
+## 🔑 Google Books API Key
+
+App dùng [Google Books API](https://developers.google.com/books) để tải danh sách sách theo thể loại.  
+API Key đã được cấu hình trong **`AppModule.kt`** và **`GoogleBooksClient.kt`** thông qua OkHttp interceptor (tự động đính kèm `?key=...` vào mọi request).
+
+> - Google Books API **hoàn toàn miễn phí** (không có gói trả phí).
+> - Không có key → quota ~100 req/ngày → **HTTP 429** (Too Many Requests).
+> - Có key → quota **10,000 req/ngày** (1,000 req/100s), đủ dùng cho development.
 
 ---
 

@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.bookstore.data.dto.request.RegisterRequest
-import com.example.bookstore.data.dto.response.JwtResponse
 import com.example.bookstore.ui.components.AuthTextField
 import com.example.bookstore.ui.components.SocialLoginButton
 import com.example.bookstore.ui.theme.*
@@ -49,22 +48,34 @@ fun RegisterScreen(
     val authState by viewModel.authState.collectAsState()
     val context = LocalContext.current
 
-    //Đăng ký thành công -> về login
-    RegisterScreenContent(
-        authState       = authState,
-        onBackClick     = { navController.popBackStack() },
-        onLoginClick    = { navController.navigate("login/account") { popUpTo("register") { inclusive = true } } },
-        onRegister      = { viewModel.register(it) },
-        onFacebookRegister = { viewModel.loginWithSocial("Facebook") },
-        onGoogleRegister = { viewModel.loginWithSocial("Google") },
-        onRegisterSuccess = {
-            // Load profile ngay sau khi đăng ký/đăng nhập thành công qua social
-            accountViewModel.loadProfile()
-            navController.navigate("home") {
-                popUpTo("register") { inclusive = true }
+    // Navigation & side-effects xử lý tập trung tại wrapper — nơi navController trực tiếp có mặt
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AuthState.Success -> {
+                Toast.makeText(context, (authState as AuthState.Success).message, Toast.LENGTH_SHORT).show()
+                navController.navigate("login/account") {
+                    popUpTo("register") { inclusive = true }
+                }
+                // Không cần resetState — ViewModel bị destroy khi screen bị pop
             }
-        },
-        onResetState    = { viewModel.resetState() }
+            is AuthState.LoginSuccess -> {
+                accountViewModel.loadProfile()
+                Toast.makeText(context, "Đăng ký và đăng nhập thành công", Toast.LENGTH_SHORT).show()
+                navController.navigate("home") {
+                    popUpTo("register") { inclusive = true }
+                }
+            }
+            else -> {}
+        }
+    }
+
+    RegisterScreenContent(
+        authState          = authState,
+        onBackClick        = { navController.popBackStack() },
+        onRegister         = { viewModel.register(it) },
+        onFacebookRegister = { viewModel.loginWithSocial("Facebook") },
+        onGoogleRegister   = { viewModel.loginWithSocial("Google") },
+        onResetState       = { viewModel.resetState() }
     )
 }
 
@@ -74,14 +85,13 @@ fun RegisterScreen(
 fun RegisterScreenContent(
     authState:    AuthState,
     onBackClick:  () -> Unit               = {},
-    onLoginClick: () -> Unit               = {},
     onRegister:   (RegisterRequest) -> Unit = {},
     onFacebookRegister: () -> Unit          = {},
     onGoogleRegister:   () -> Unit          = {},
-    onRegisterSuccess:  (JwtResponse) -> Unit = {},
     onResetState: () -> Unit               = {}
 ) {
     var fullName               by remember { mutableStateOf("") }
+    var username               by remember { mutableStateOf("") }
     var email                  by remember { mutableStateOf("") }
     var phone                  by remember { mutableStateOf("") }
     var password               by remember { mutableStateOf("") }
@@ -91,6 +101,7 @@ fun RegisterScreenContent(
     var agreeToTerms           by remember { mutableStateOf(false) }
 
     var fullNameError        by remember { mutableStateOf(false) }
+    var usernameError        by remember { mutableStateOf(false) }
     var emailError           by remember { mutableStateOf(false) }
     var phoneError           by remember { mutableStateOf(false) }
     var passwordError        by remember { mutableStateOf(false) }
@@ -99,26 +110,16 @@ fun RegisterScreenContent(
 
     val context = LocalContext.current
 
+    // Chỉ xử lý Error tại đây (highlight field lỗi + Toast)
+    // Navigation được xử lý tập trung ở wrapper RegisterScreen
     LaunchedEffect(authState) {
-        when (authState) {
-            is AuthState.Success -> {
-                Toast.makeText(context, authState.message, Toast.LENGTH_SHORT).show()
-                onLoginClick()
-                onResetState()
+        if (authState is AuthState.Error) {
+            Toast.makeText(context, authState.message, Toast.LENGTH_LONG).show()
+            if (authState.message.contains("email", ignoreCase = true) ||
+                authState.message.contains("tài khoản", ignoreCase = true)) {
+                emailError = true
             }
-            is AuthState.LoginSuccess -> {
-                Toast.makeText(context, "Đăng ký và đăng nhập thành công", Toast.LENGTH_SHORT).show()
-                onRegisterSuccess(authState.response)
-                onResetState()
-            }
-            is AuthState.Error -> {
-                Toast.makeText(context, authState.message, Toast.LENGTH_SHORT).show()
-                if (authState.message.contains("Email", ignoreCase = true)) {
-                    emailError = true
-                }
-                onResetState()
-            }
-            else -> {}
+            onResetState()
         }
     }
 
@@ -161,6 +162,18 @@ fun RegisterScreenContent(
                 placeholder   = "Nhập họ và tên",
                 leadingIcon   = Icons.Outlined.Person,
                 isError       = fullNameError
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Username
+            AuthTextField(
+                label         = "Tên đăng nhập",
+                value         = username,
+                onValueChange = { username = it; if (usernameError) usernameError = false },
+                placeholder   = "Nhập tên đăng nhập",
+                leadingIcon   = Icons.Outlined.Person,
+                isError       = usernameError
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -269,17 +282,26 @@ fun RegisterScreenContent(
             Button(
                 onClick = {
                     fullNameError        = fullName.isBlank()
+                    usernameError        = username.isBlank()
                     emailError           = email.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()
                     phoneError           = phone.isBlank() || phone.length < 10
                     passwordError        = password.isBlank()
                     confirmPasswordError = confirmPassword.isBlank() || password != confirmPassword
                     agreeToTermsError    = !agreeToTerms
 
-                    if (!fullNameError && !emailError && !phoneError && !passwordError && !confirmPasswordError && !agreeToTermsError) {
-                        onRegister(RegisterRequest(email, password, email, fullName))
+                    if (!fullNameError && !usernameError && !emailError && !phoneError && !passwordError && !confirmPasswordError && !agreeToTermsError) {
+                        onRegister(
+                            RegisterRequest(
+                                username    = username,
+                                password    = password,
+                                email       = email,
+                                fullName    = fullName,
+                                phoneNumber = phone
+                            )
+                        )
                     } else {
                         val msg = when {
-                            fullName.isBlank() || email.isBlank() || phone.isBlank() || password.isBlank() || confirmPassword.isBlank() -> "Vui lòng điền đầy đủ thông tin"
+                            fullName.isBlank() || username.isBlank() || email.isBlank() || phone.isBlank() || password.isBlank() || confirmPassword.isBlank() -> "Vui lòng điền đầy đủ thông tin"
                             !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> "Email không đúng định dạng"
                             phone.length < 10 -> "Số điện thoại không đúng định dạng"
                             password != confirmPassword -> "Mật khẩu không khớp"
@@ -292,7 +314,9 @@ fun RegisterScreenContent(
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape    = RoundedCornerShape(12.dp),
                 colors   = ButtonDefaults.buttonColors(containerColor = AppColors.PrimaryBlue),
-                enabled  = authState !is AuthState.Loading
+                // Chỉ enable khi Idle — khi Loading/Success/Error đều disable
+                // để tránh gửi request 2 lần trong khi navigation đang xảy ra
+                enabled  = authState is AuthState.Idle
             ) {
                 if (authState is AuthState.Loading) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))

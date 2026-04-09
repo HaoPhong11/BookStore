@@ -76,7 +76,7 @@ class AccountViewModel @Inject constructor(
         }
     }
 
-    fun saveProfile() {
+    fun saveProfile(showSuccess: Boolean = true) {
         viewModelScope.launch {
             isLoading   = true
             profileError = null
@@ -86,7 +86,7 @@ class AccountViewModel @Inject constructor(
                 UserRequest(editFullName, editPhone, editAddress, editEmail, editProvince, editDistrict)
             )
             isLoading = false
-            result.onSuccess { updateSuccess = true; loadProfile() }
+            result.onSuccess { if (showSuccess) updateSuccess = true; loadProfile() }
             result.onFailure { profileError = it.message }
         }
     }
@@ -154,7 +154,7 @@ class AccountViewModel @Inject constructor(
         editProvince = province
         editDistrict = district
         editAddress  = address
-        saveProfile()   // lưu lên backend ngay
+        saveProfile(showSuccess = false)   // lưu im lặng, không hiện popup
     }
 }
 

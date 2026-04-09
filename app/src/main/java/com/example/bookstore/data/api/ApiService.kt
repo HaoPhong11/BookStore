@@ -10,6 +10,7 @@ import com.example.bookstore.data.dto.request.UserRequest
 import com.example.bookstore.data.dto.response.JwtResponse
 import com.example.bookstore.data.dto.response.OrderResponse
 import com.example.bookstore.data.dto.response.UserResponse
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -27,9 +28,9 @@ interface ApiService {
         @Body request: LoginRequest
     ): Response<JwtResponse>
 
-    //dang ky
+    //dang ky — backend trả text/plain nên dùng ResponseBody thay vì String
     @POST("api/auth/register")
-    suspend fun registerUser(@Body request: RegisterRequest): Response<String>
+    suspend fun registerUser(@Body request: RegisterRequest): Response<ResponseBody>
 
      @GET("api/books/search")
      suspend fun searchBooks(@Query("query") query: String): Response<List<Book>>
@@ -40,7 +41,7 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("userId") userId: Long,
         @Body request: UserRequest
-    ): Response<Any>
+    ): Response<ResponseBody> // dùng ResponseBody để tránh Gson parse text/plain
 
     @GET("api/users/{userId}")
     suspend fun getUserProfile(
@@ -52,7 +53,7 @@ interface ApiService {
     suspend fun changePassword(
         @Header("Authorization") token: String,
         @Body request: ChangePasswordRequest
-    ): Response<String>
+    ): Response<ResponseBody>
 
 
     // --- PHẦN ĐÁNH GIÁ (REVIEWS) ---
@@ -60,7 +61,7 @@ interface ApiService {
     suspend fun addReview(
         @Header("Authorization") token: String,
         @Body request: ReviewRequest
-    ): Response<String> // Trả về câu thông báo "Thành công"
+    ): Response<ResponseBody> // backend trả text/plain
 
     @GET("api/reviews/book/{bookId}/average-rating")
     suspend fun getAverageRating(
@@ -73,7 +74,7 @@ interface ApiService {
     suspend fun createOrder(
         @Header("Authorization") token: String,
         @Body request: OrderRequest
-    ): Response<Any>
+    ): Response<ResponseBody> // dùng ResponseBody để tránh Gson parse text/plain
 
     @GET("api/orders/user/{userId}")
     suspend fun getOrderHistory(

@@ -1,5 +1,6 @@
 package com.example.bookstore.data.api
 
+import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -41,10 +42,13 @@ object RetrofitClient {
         .build()
 
     val instance: Retrofit by lazy {
+        // setLenient() cho phép Gson parse text/plain ("Đăng ký thành công!")
+        // thay vì chỉ chấp nhận JSON chuẩn — tránh lỗi "Use JsonReader.setLenient"
+        val gson = GsonBuilder().setLenient().create()
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 

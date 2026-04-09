@@ -11,6 +11,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
@@ -30,8 +31,19 @@ object AppModule {
     @Provides
     @Singleton
     fun provideGoogleBooksApi(): GoogleBooksApiService {
+        val apiKey = "AIzaSyCB6PVlT939N3rD-La0y52Y0bEYydSeF0o"
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val original = chain.request()
+                val url = original.url.newBuilder()
+                    .addQueryParameter("key", apiKey)
+                    .build()
+                chain.proceed(original.newBuilder().url(url).build())
+            }
+            .build()
         return Retrofit.Builder()
             .baseUrl("https://www.googleapis.com/books/v1/")
+            .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(GoogleBooksApiService::class.java)

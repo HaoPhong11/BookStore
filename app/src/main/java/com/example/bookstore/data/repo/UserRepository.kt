@@ -43,7 +43,7 @@ class UserRepository @Inject constructor(
     suspend fun register(request: RegisterRequest): Result<String> {
         return try {
             val response = api.registerUser(request)
-            if (response.isSuccessful) Result.success(response.body() ?: "Đăng ký thành công")
+            if (response.isSuccessful) Result.success(response.body()?.string() ?: "Đăng ký thành công")
             else Result.failure(Exception("Đăng ký thất bại (${response.code()})"))
         } catch (e: Exception) {
             Log.e("UserRepository", "register error", e)
@@ -82,7 +82,7 @@ class UserRepository @Inject constructor(
             val token = tokenManager.token.first()
                 ?: return Result.failure(Exception("Chưa đăng nhập"))
             val response = api.changePassword("Bearer $token", request)
-            if (response.isSuccessful) Result.success(response.body() ?: "Đổi mật khẩu thành công")
+            if (response.isSuccessful) Result.success(response.body()?.string() ?: "Đổi mật khẩu thành công")
             else Result.failure(Exception("Đổi mật khẩu thất bại (${response.code()})"))
         } catch (e: Exception) {
             Log.e("UserRepository", "changePassword error", e)

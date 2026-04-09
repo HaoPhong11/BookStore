@@ -41,7 +41,15 @@ class AuthViewModel @Inject constructor(
                 val response = apiService.login(request)
                 if (response.isSuccessful && response.body() != null) {
                     val jwtResponse = response.body()!!
+                    // Lưu token
                     tokenManager.saveToken(jwtResponse.token)
+                    // Lưu userId — AccountViewModel dùng để gọi /api/users/{userId}
+                    jwtResponse.userId?.let { tokenManager.saveUserId(it) }
+                    // Lưu username — hiển thị trên AccountScreen
+                    val uname = jwtResponse.username
+                        ?: TokenManager.decodeUsernameFromJwt(jwtResponse.token)
+                        ?: request.username
+                    tokenManager.saveUsername(uname)
                     _authState.value = AuthState.LoginSuccess(jwtResponse)
                 } else {
                     _authState.value = AuthState.Error("Đăng nhập thất bại: Sai tài khoản hoặc mật khẩu")
@@ -83,14 +91,35 @@ class AuthViewModel @Inject constructor(
             try {
                 val response = apiService.registerUser(request)
                 if (response.isSuccessful) {
-                    _authState.value = AuthState.Success(response.body() ?: "Đăng ký thành công")
+                    _authState.value = AuthState.Success(response.body()?.string() ?: "Đăng ký thành công")
                 } else {
-                    val errorBody = response.errorBody()?.string() ?: "Đăng ký thất bại"
-                    _authState.value = AuthState.Error(errorBody)
+                    val raw = response.errorBody()?.string() ?: ""
+                    val friendly = parseRegisterError(raw)
+                    _authState.value = AuthState.Error(friendly)
                 }
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("Lỗi kết nối: ${e.message}")
             }
+        }
+    }
+
+    /** Chuyển lỗi JSON từ backend sang thông báo thân thiện */
+    private fun parseRegisterError(raw: String): String {
+        // Trích message từ JSON: {"message":"...","status":400}
+        val jsonMessage = try {
+            org.json.JSONObject(raw).optString("message", "")
+        } catch (_: Exception) { raw }
+
+        return when {
+            jsonMessage.contains("Duplicate entry", ignoreCase = true) &&
+            jsonMessage.contains("UKr43af9ap4edm43mmtq01oddj6", ignoreCase = true) ->
+                "Email này đã được đăng ký, vui lòng dùng email khác"
+            jsonMessage.contains("Duplicate entry", ignoreCase = true) ->
+                "Tài khoản đã tồn tại, vui lòng dùng email khác"
+            jsonMessage.contains("constraint", ignoreCase = true) ->
+                "Thông tin đã tồn tại trong hệ thống"
+            raw.isBlank() -> "Đăng ký thất bại, vui lòng thử lại"
+            else -> "Đăng ký thất bại: ${jsonMessage.ifBlank { raw }.take(100)}"
         }
     }
 

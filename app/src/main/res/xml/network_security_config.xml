@@ -13,6 +13,11 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">192.168.102.4</domain>
     </domain-config>
+
+    <!-- IP LAN hiện tại của máy tính -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.1.4</domain>
+    </domain-config>
 </network-security-config>
 
 

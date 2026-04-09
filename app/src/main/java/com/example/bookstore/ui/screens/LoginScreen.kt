@@ -1,6 +1,5 @@
 package com.example.bookstore.ui.screens
 
-import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,8 +7,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -87,7 +86,7 @@ fun LoginScreenContent(
     onForgotPasswordClick: () -> Unit              = {},
     onResetState:          () -> Unit              = {}
 ) {
-    var email           by remember { mutableStateOf("") }
+    var email           by remember { mutableStateOf("") }  // email hoặc username
     var password        by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe      by remember { mutableStateOf(false) }
@@ -146,14 +145,14 @@ fun LoginScreenContent(
 
             Spacer(Modifier.height(32.dp))
 
-            // Email
+            // Tên đăng nhập
             AuthTextField(
-                label        = "Email",
+                label        = "Tên đăng nhập",
                 value        = email,
                 onValueChange = { email = it; if (emailError) emailError = false },
-                placeholder  = "Nhập địa chỉ email",
-                leadingIcon  = Icons.Outlined.Email,
-                keyboardType = KeyboardType.Email,
+                placeholder  = "Nhập tên đăng nhập",
+                leadingIcon  = Icons.Outlined.Person,
+                keyboardType = KeyboardType.Text,
                 isError      = emailError
             )
 
@@ -195,16 +194,14 @@ fun LoginScreenContent(
 
             Button(
                 onClick = {
-                    emailError    = email.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()
+                    emailError    = email.isBlank()
                     passwordError = password.isBlank()
 
                     if (!emailError && !passwordError) {
-                        // In many backends username is email
-                        onLogin(LoginRequest(email, password))
+                        onLogin(LoginRequest(email.trim(), password))
                     } else {
                         val msg = when {
                             email.isBlank() || password.isBlank() -> "Vui lòng điền đầy đủ thông tin"
-                            !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> "Email không đúng định dạng"
                             else -> "Thông tin không hợp lệ"
                         }
                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
